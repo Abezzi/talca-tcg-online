@@ -73,3 +73,23 @@ bun run preview
 ```
 
 Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Testing
+
+### Unit test
+
+```bash
+npm run test:unit
+```
+
+### e2e
+
+make sure to install playwright
+
+```bash
+# arch
+yay -S playwright
+
+# ubuntu
+sudo npx playwright install-deps
+```
