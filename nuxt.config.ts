@@ -7,7 +7,8 @@ export default defineNuxtConfig({
     '@nuxt/hints',
     '@nuxt/image',
     '@nuxt/test-utils',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    'convex-nuxt'
   ],
 
   // will use router based of pages/, instead of only the app.vue file
@@ -17,6 +18,11 @@ export default defineNuxtConfig({
   // imports the css
   css: ['~/assets/css/main.css'],
   compatibilityDate: '2025-07-15',
+
+  // convex config
+  convex: {
+    url: process.env.CONVEX_URL
+  },
 
   // eslint config
   eslint: {
