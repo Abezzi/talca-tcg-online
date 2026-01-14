@@ -1,8 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
-
+  // imports modules
   modules: [
     '@nuxt/a11y',
     '@nuxt/eslint',
@@ -10,5 +8,33 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/test-utils',
     '@nuxt/ui'
-  ]
+  ],
+
+  // will use router based of pages/, instead of only the app.vue file
+  pages: true,
+  devtools: { enabled: true },
+
+  // imports the css
+  css: ['~/assets/css/main.css'],
+  compatibilityDate: '2025-07-15',
+
+  // eslint config
+  eslint: {
+    config: {
+      stylistic: {
+        commaDangle: 'never',
+        braceStyle: '1tbs'
+      }
+    }
+  },
+
+  // font families and their providers
+  fonts: {
+    families: [
+      {
+        name: 'Comico',
+        provider: 'fontshare'
+      }
+    ]
+  }
 })
