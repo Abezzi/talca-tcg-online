@@ -18,6 +18,22 @@ export default defineNuxtConfig({
 
   // imports the css
   css: ['~/assets/css/main.css'],
+
+  // oauth
+  runtimeConfig: {
+    sessionPassword: process.env.NUXT_SESSION_PASSWORD,
+    oauth: {
+      discord: {
+        clientId: process.env.NUXT_OAUTH_DISCORD_CLIENT_ID,
+        clientSecret: process.env.NUXT_OAUTH_DISCORD_CLIENT_SECRET
+      }
+    }
+  },
+
+  // auth middleware, protects everything except login
+  routeRules: {
+    '/**': { appMiddleware: ['auth'] }
+  },
   compatibilityDate: '2025-07-15',
 
   // convex config
@@ -45,4 +61,3 @@ export default defineNuxtConfig({
     ]
   }
 })
-
