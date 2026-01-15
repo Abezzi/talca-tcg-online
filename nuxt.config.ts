@@ -8,7 +8,8 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/test-utils',
     '@nuxt/ui',
-    'convex-nuxt'
+    'convex-nuxt',
+    'nuxt-auth-utils'
   ],
 
   // will use router based of pages/, instead of only the app.vue file
