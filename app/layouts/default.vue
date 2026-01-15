@@ -30,28 +30,24 @@
           variant="ghost"
         />
 
-        <div
+        <UDropdownMenu
           v-if="loggedIn"
-          class="flex items-center gap-3"
+          :items="userMenuItems"
         >
-          <UAvatar
-            :src="user.avatar"
-            :alt="user.globalName || user.username"
-            size="sm"
-          />
-          <span class="text-sm font-medium hidden sm:block">
-            {{ user.globalName || user.username }}
-          </span>
-        </div>
-
-        <UButton
-          v-if="loggedIn"
-          label="Logout"
-          color="red"
-          variant="outline"
-          size="sm"
-          @click="logout"
-        />
+          <UButton
+            color="neutral"
+            variant="ghost"
+          >
+            <UAvatar
+              :src="user.avatar"
+              :alt="user.globalName || user.username"
+              size="sm"
+            />
+            <span class="text-sm font-medium hidden sm:block">
+              {{ user.globalName || user.username }}
+            </span>
+          </UButton>
+        </UDropdownMenu>
       </template>
 
       <template #body>
@@ -100,7 +96,26 @@ const logout = async () => {
 }
 
 const route = useRoute()
+// user dropdown items
+const userMenuItems = computed<DropdownItem[]>(() => [
+  {
+    label: user.value?.displayName || user.value?.username || 'User',
+    disabled: true,
+    icon: 'i-heroicons-user-circle',
+    class: 'font-medium text-gray-900 dark:text-white'
+  },
+  {
+    type: 'divider'
+  },
+  {
+    label: 'Logout',
+    icon: 'i-heroicons-arrow-right-on-rectangle',
+    onSelect: logout,
+    class: 'text-red-600 dark:text-red-400'
+  }
+])
 
+// header items in the middle
 const items = computed<NavigationMenuItem[]>(() => [
   {
     label: 'Decks',
