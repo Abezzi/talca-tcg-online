@@ -93,3 +93,17 @@ yay -S playwright
 # ubuntu
 sudo npx playwright install-deps
 ```
+
+## DB deployment with Convex
+
+for produdction use:
+
+```bash
+npx convex deploy
+```
+
+for local development use:
+
+```bash
+npx convex dev
+```
