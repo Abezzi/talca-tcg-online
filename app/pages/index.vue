@@ -4,11 +4,7 @@ definePageMeta({
   middleware: ['auth']
 })
 
-const { user, clear: clearSession } = useUserSession()
-async function logout() {
-  await clearSession()
-  await nagivateTo('/login')
-}
+const { user } = useUserSession()
 </script>
 
 <template>
@@ -16,8 +12,5 @@ async function logout() {
     <h1 className="text-5xl">
       welcome, {{ user }}
     </h1>
-    <button @click="logout">
-      Logout
-    </button>
   </div>
 </template>
