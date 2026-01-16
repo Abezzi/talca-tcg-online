@@ -1,11 +1,21 @@
-export default defineNuxtRouteMiddleware((to) => {
-  const { loggedIn } = useUserSession()
+import { useAuthStore } from '../../stores/auth'
+
+export default defineNuxtRouteMiddleware(async (to) => {
+  console.log('inside the middelware')
+  const authStore = useAuthStore()
+  const userSession = useUserSession()
+
+  if (!authStore.isAuthenticated && authStore.isLoading) {
+    console.log('[Auth Middleware] Starting initial auth check...')
+    await authStore.initAuth()
+    console.log('[Auth Middleware] Auth check finished -> user:', !!authStore.user)
+  }
 
   // skip to login page
   if (to.path === '/login' || to.path === '/register') return
 
   // redirect the user to the login screen if they're not authenticated
-  if (!loggedIn.value) {
+  if (to.meta.auth && !userSession.loggedIn.value && !authStore.isAuthenticated) {
     return navigateTo('/login')
   }
 })
