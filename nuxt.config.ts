@@ -9,7 +9,13 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxt/ui',
     'convex-nuxt',
-    'nuxt-auth-utils'
+    'nuxt-auth-utils',
+    '@pinia/nuxt'
+  ],
+
+  plugins: [
+    // sync with convex after authentication
+    { src: './app/plugins/auth-sync.client.ts', mode: 'client' }
   ],
 
   // will use router based of pages/, instead of only the app.vue file
