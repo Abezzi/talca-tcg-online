@@ -4,9 +4,13 @@ import { v } from 'convex/values'
 export default defineSchema({
   // users
   users: defineTable({
+    discordId: v.string(),
     username: v.string(),
-    email: v.string()
-  }).index('by_username', ['username']),
+    email: v.string(),
+    discriminator: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    createdAt: v.number()
+  }).index('by_username', ['username']).index('by_discordId', ['discordId']),
 
   // cards
   cards: defineTable({
