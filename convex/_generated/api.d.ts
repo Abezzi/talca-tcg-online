@@ -10,6 +10,7 @@
 
 import type * as cards from "../cards.js";
 import type * as decks from "../decks.js";
+import type * as seed_cards from "../seed/cards.js";
 import type * as users from "../users.js";
 
 import type {
@@ -21,6 +22,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   cards: typeof cards;
   decks: typeof decks;
+  "seed/cards": typeof seed_cards;
   users: typeof users;
 }>;
 
