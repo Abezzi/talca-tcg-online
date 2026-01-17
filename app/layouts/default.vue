@@ -21,14 +21,16 @@
       <template #right>
         <UColorModeButton />
 
-        <UButton
-          to="https://github.com/abezzi/talca-tcg-online"
-          target="_blank"
-          icon="i-simple-icons-github"
-          aria-label="GitHub"
-          color="neutral"
-          variant="ghost"
-        />
+        <UTooltip text="Use this to buy packs">
+          <UButton
+            trailing-icon="mingcute-coin-fill"
+            aria-label="coins"
+            color="neutral"
+            variant="ghost"
+          >
+            {{ auth.coins }}
+          </UButton>
+        </UTooltip>
 
         <UDropdownMenu
           v-if="loggedIn"
@@ -87,6 +89,9 @@
 
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const { loggedIn, clear, user } = useUserSession()
 
