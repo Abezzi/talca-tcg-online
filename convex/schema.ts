@@ -9,7 +9,8 @@ export default defineSchema({
     email: v.string(),
     discriminator: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
-    createdAt: v.number()
+    createdAt: v.number(),
+    coins: v.number()
   }).index('by_username', ['username']).index('by_discordId', ['discordId']),
 
   // cards
