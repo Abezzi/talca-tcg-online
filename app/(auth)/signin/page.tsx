@@ -20,6 +20,14 @@ export default function SignIn() {
             alt="Talca TCG Logo"
             width={90}
             height={90}
+            className="dark:hidden"
+          />
+          <Image
+            src="/logo-darkbg.svg"
+            alt="Next.js Logo"
+            width={90}
+            height={90}
+            className="hidden dark:block"
           />
         </div>
         <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200">
