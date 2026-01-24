@@ -10,4 +10,9 @@ export default defineSchema({
   numbers: defineTable({
     value: v.number(),
   }),
+
+  currencies: defineTable({
+    coins: v.number(),
+    userId: v.id('users')
+  })
 });
