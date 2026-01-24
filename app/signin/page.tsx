@@ -16,29 +16,14 @@ export default function SignIn() {
       <div className="text-center flex flex-col items-center gap-4">
         <div className="flex items-center gap-6">
           <Image
-            src="/convex.svg"
-            alt="Convex Logo"
+            src="/logo.svg"
+            alt="Talca TCG Logo"
             width={90}
             height={90}
-          />
-          <div className="w-px h-20 bg-slate-300 dark:bg-slate-600"></div>
-          <Image
-            src="/nextjs-icon-light-background.svg"
-            alt="Next.js Logo"
-            width={90}
-            height={90}
-            className="dark:hidden"
-          />
-          <Image
-            src="/nextjs-icon-dark-background.svg"
-            alt="Next.js Logo"
-            width={90}
-            height={90}
-            className="hidden dark:block"
           />
         </div>
         <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-200">
-          Convex + Next.js + Convex Auth
+          Talca TCG
         </h1>
         <p className="text-slate-600 dark:text-slate-400">
           This demo uses Convex Auth for authentication, so you will need to

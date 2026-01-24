@@ -6,24 +6,24 @@ import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ModeToggle } from "@/components/features/mode-toggle";
 
 export default function Home() {
   return (
     <>
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-700 flex flex-row justify-between items-center shadow-sm">
+        {/* logo + app name */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
-            <Image src="/convex.svg" alt="Convex Logo" width={32} height={32} />
-            <div className="w-px h-8 bg-slate-300 dark:bg-slate-600"></div>
             <Image
-              src="/nextjs-icon-light-background.svg"
+              src="/logo.svg"
               alt="Next.js Logo"
               width={32}
               height={32}
               className="dark:hidden"
             />
             <Image
-              src="/nextjs-icon-dark-background.svg"
+              src="/logo-darkbg.svg"
               alt="Next.js Logo"
               width={32}
               height={32}
@@ -31,10 +31,14 @@ export default function Home() {
             />
           </div>
           <h1 className="font-semibold text-slate-800 dark:text-slate-200">
-            Convex + Next.js + Convex Auth
+            Talca TCG
           </h1>
         </div>
-        <SignOutButton />
+        {/* right side, toggle mode, signout button */}
+        <div className="flex items-center gap-3">
+          <ModeToggle />
+          <SignOutButton />
+        </div>
       </header>
       <main className="p-8 flex flex-col gap-8">
         <Content />
