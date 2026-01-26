@@ -22,7 +22,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-700 flex flex-row justify-between items-center shadow-sm">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-700 flex flex-row justify-between items-center shadow-sm">
         {/* logo + app name */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3">
