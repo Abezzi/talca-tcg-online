@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -14,8 +14,12 @@ import {
   NavigationMenuTrigger,
 } from "../ui/navigation-menu";
 import Link from "next/link";
+import { api } from "@/convex/_generated/api";
+import { Coins } from "lucide-react";
 
 export default function Header() {
+  const currency = useQuery(api.user.getUserCurrencies, {});
+
   return (
     <>
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md p-4 border-b border-slate-200 dark:border-slate-700 flex flex-row justify-between items-center shadow-sm">
@@ -94,6 +98,10 @@ export default function Header() {
         </div>
         {/* right side, toggle mode, signout button */}
         <div className="flex items-center gap-3">
+          <Coins />
+          <p>
+            <b>{currency ?? 0}</b>
+          </p>
           <ModeToggle />
           <SignOutButton />
         </div>
