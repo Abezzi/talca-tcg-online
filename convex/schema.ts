@@ -19,7 +19,11 @@ export default defineSchema({
   cards: defineTable({
     name: v.string(),
     level: v.number(),
-    type: v.union(v.literal("normal"), v.literal("trap"), v.literal("spell")),
+    cardType: v.union(
+      v.literal("normal"),
+      v.literal("trap"),
+      v.literal("spell"),
+    ),
     atack: v.optional(v.number()),
     defense: v.optional(v.number()),
     rarity: v.union(
@@ -28,6 +32,17 @@ export default defineSchema({
       v.literal("sr"),
       v.literal("ur"),
     ),
+    monsterType: v.optional(
+      v.union(
+        v.literal("beast"),
+        v.literal("human"),
+        v.literal("fairy"),
+        v.literal("food"),
+      ),
+    ),
+    archetype: v.optional(v.union(v.literal("Completos"))),
+    effect: v.optional(v.string()),
+    deck: v.union(v.literal("Deck"), v.literal("Extra Deck")),
   }).index("by_name", ["name"]),
 
   // N:M users:cards
