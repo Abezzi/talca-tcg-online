@@ -1,7 +1,6 @@
-import { v } from "convex/values";
-import { query, mutation, action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { getManyVia } from "convex-helpers/server/relationships";
 
 export const getUser = query({
   // Validators for arguments.
@@ -30,5 +29,25 @@ export const getUserCurrencies = query({
       .filter((q) => q.eq(q.field("userId"), userId))
       .take(1);
     return currency[0].coins;
+  },
+});
+
+export const getUserCards = query({
+  args: {},
+
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const cards = await getManyVia(
+      ctx.db,
+      "user_unlocked_cards",
+      "cardId",
+      "by_user_card",
+      userId,
+      "userId",
+    );
+
+    return cards;
   },
 });
