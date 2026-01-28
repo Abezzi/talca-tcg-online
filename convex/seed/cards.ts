@@ -1,20 +1,8 @@
 import { internalMutation } from "../_generated/server";
 import { v } from "convex/values";
+import { Card } from "../../types/card";
 
-type SeedCard = {
-  name: string;
-  level: number;
-  cardType: "normal" | "trap" | "spell";
-  atack?: number;
-  defense?: number;
-  rarity: "n" | "r" | "sr" | "ur";
-  monsterType?: "beast" | "human" | "fairy" | "food";
-  archetype?: "Completos";
-  effect: string;
-  deck: "Deck" | "Extra Deck";
-};
-
-const cards: Array<SeedCard> = [
+const cards: Array<Card> = [
   // Normal monsters
   {
     name: "Completos Sausage",
