@@ -1,6 +1,7 @@
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { getManyVia } from "convex-helpers/server/relationships";
+import { v } from "convex/values";
 
 export const getUser = query({
   // Validators for arguments.
@@ -20,15 +21,28 @@ export const getUser = query({
   },
 });
 
+export const createCurrency = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("currencies", { userId: args.userId, coins: 0 });
+  },
+});
+
 export const getUserCurrencies = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    const currency = await ctx.db
+
+    if (!userId) throw new Error("Not authenticated");
+
+    const existing = await ctx.db
       .query("currencies")
       .filter((q) => q.eq(q.field("userId"), userId))
-      .take(1);
-    return currency[0].coins;
+      .first();
+
+    if (existing) {
+      return existing.coins;
+    }
   },
 });
 

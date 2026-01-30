@@ -39,7 +39,7 @@ export default function Pack({
           {newTag ? <Badge variant="secondary">NEW</Badge> : <></>}
         </CardAction>
         <CardTitle>{title}</CardTitle>
-        <CardDescription>
+        <CardDescription className="line-clamp-2">
           {description ?? "No descripton provided"}
         </CardDescription>
       </CardHeader>
