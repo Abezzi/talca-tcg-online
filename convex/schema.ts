@@ -70,4 +70,17 @@ export default defineSchema({
     .index("by_deck", ["deckId"])
     .index("by_deck_card", ["deckId", "cardId"])
     .index("by_card", ["cardId"]),
+
+  packs: defineTable({
+    title: v.string(),
+    description: v.string(),
+    imageSrc: v.string(),
+    newTag: v.optional(v.boolean()),
+  }),
+
+  // N:M pack:cards
+  cards_in_packs: defineTable({
+    packId: v.id("packs"),
+    cardId: v.id("cards"),
+  }),
 });
