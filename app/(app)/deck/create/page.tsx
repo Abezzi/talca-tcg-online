@@ -44,7 +44,7 @@ export default function CreateDeck() {
   return (
     <div className="min-h-screen text-white">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-4">
-        <aside className="border-r border-stone-900 bg-background/80 lg:col-span-1">
+        <aside className="border-r border-stone-200 dark:border-stone-700 bg-background/80 lg:col-span-1">
           <div className="sticky top-0 z-10 border-b border-stone-900 bg-inherit p-4">
             <div className="relative">
               <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -68,6 +68,7 @@ export default function CreateDeck() {
                     if (card) addToDeck(card);
                   }}
                 >
+                  {/* card content of each card in the side menu */}
                   <div className="relative aspect-3/4 w-full">
                     <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-stone-600 bg-gray-800 text-xs">
                       <div className="text-center">
@@ -101,7 +102,7 @@ export default function CreateDeck() {
               </p>
             </div>
 
-            <Separator className="mb-8 bg-stone-800" />
+            <Separator className="mb-8 bg-stone-200 dark:bg-stone-700" />
           </div>
 
           {/* cards on the deck */}
@@ -157,19 +158,19 @@ export default function CreateDeck() {
                       }
                     }}
                   >
-                    <div className="aspect-3/4 cursor-pointer rounded-lg border-2 border-purple-700 bg-gray-900 transition-all hover:border-red-600">
+                    <div className="aspect-3/4 cursor-pointer rounded-lg border-2 border-stone-700 bg-gray-900 transition-all hover:border-red-600">
                       <div className="flex h-full flex-col items-center justify-center p-2">
                         <div className="line-clamp-2 text-center text-sm font-semibold">
                           {card.name}
                         </div>
-                        <div className="mt-1 text-xs text-purple-400">
+                        <div className="mt-1 text-xs text-stone-400">
                           type: {card.cardType}
                         </div>
                       </div>
 
                       {/* Count Badge - only show if > 1 */}
                       {count > 1 && (
-                        <div className="absolute right-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full bg-purple-800/90 text-sm font-bold text-white shadow-lg">
+                        <div className="absolute right-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800/90 text-sm font-bold text-white shadow-lg">
                           x{count}
                         </div>
                       )}
