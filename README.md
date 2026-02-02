@@ -1,3 +1,7 @@
+# Description
+
+this is the code of the game Talca-TCG a card trading game were you fighting your opponent in a skill based duel with monsters and spells.
+
 # Welcome to your Convex + Next.js + Convex Auth app
 
 This is a [Convex](https://convex.dev/) project created with [`npm create convex`](https://www.npmjs.com/package/create-convex).
