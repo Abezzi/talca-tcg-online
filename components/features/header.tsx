@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvexAuth, useQuery } from "convex/react";
+import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -16,9 +16,18 @@ import {
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Coins } from "lucide-react";
+import { useEffect } from "react";
 
 export default function Header() {
-  const currency = useQuery(api.user.getUserCurrencies, {});
+  const coins = useQuery(api.user.getUserCoins, {});
+  const createCurrency = useMutation(api.user.createCurrency);
+
+  useEffect(() => {
+    if (coins === null) {
+      console.log("no coins");
+      createCurrency();
+    }
+  }, [coins, createCurrency]);
 
   return (
     <>
@@ -100,7 +109,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <Coins />
           <p>
-            <b>{currency ?? 0}</b>
+            <b>{coins ?? 0}</b>
           </p>
           <ModeToggle />
           <SignOutButton />
