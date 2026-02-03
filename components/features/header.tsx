@@ -1,6 +1,6 @@
 "use client";
 
-import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -24,7 +24,6 @@ export default function Header() {
 
   useEffect(() => {
     if (coins === null) {
-      console.log("no coins");
       createCurrency();
     }
   }, [coins, createCurrency]);
