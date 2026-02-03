@@ -76,7 +76,7 @@ export default defineSchema({
     description: v.string(),
     imageSrc: v.string(),
     newTag: v.optional(v.boolean()),
-  }),
+  }).index("by_title", ["title"]),
 
   // N:M pack:cards
   cards_in_packs: defineTable({

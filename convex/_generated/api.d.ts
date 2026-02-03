@@ -12,6 +12,8 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as seed_cards from "../seed/cards.js";
+import type * as seed_cardsInPacks from "../seed/cardsInPacks.js";
+import type * as seed_packs from "../seed/packs.js";
 import type * as user from "../user.js";
 
 import type {
@@ -25,6 +27,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   myFunctions: typeof myFunctions;
   "seed/cards": typeof seed_cards;
+  "seed/cardsInPacks": typeof seed_cardsInPacks;
+  "seed/packs": typeof seed_packs;
   user: typeof user;
 }>;
 

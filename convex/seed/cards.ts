@@ -136,6 +136,51 @@ const cards: Array<Card> = [
       "Target 1 'Completos' Monster in your GY; Special Summon it, but negate its effects",
     deck: "Deck",
   },
+  {
+    name: "Counterspell",
+    level: 0,
+    cardType: "spell",
+    rarity: "sr",
+    effect:
+      "Target 1 face-up Spell on the field; negate its effects (until the end of this turn)",
+    deck: "Deck",
+  },
+  {
+    name: "Daniel the Honest",
+    level: 0,
+    cardType: "spell",
+    rarity: "sr",
+    effect:
+      "Target 1 face-up Trap on the field; negate its effects (until the end of this turn)",
+    deck: "Deck",
+  },
+  {
+    name: "Crowd Control",
+    level: 0,
+    cardType: "spell",
+    rarity: "sr",
+    effect:
+      "Target 1 face-up monster your opponent controls; negate its effects (until the end of this turn)",
+    deck: "Deck",
+  },
+  {
+    name: "Joe Momma",
+    level: 4,
+    cardType: "normal",
+    rarity: "r",
+    effect:
+      "If this card battles a monster, neither can be destroyed by that battle.",
+    deck: "Deck",
+  },
+  {
+    name: "Rat Chef",
+    level: 5,
+    cardType: "normal",
+    rarity: "sr",
+    effect:
+      "You can discard this card, then avtivate 1 of these effect \n - Add 1 'Food Type' monster from your graveyard to your hand, except 'Rat Chef'",
+    deck: "Deck",
+  },
 ];
 export const seed = internalMutation({
   args: { force: v.optional(v.boolean()) },
