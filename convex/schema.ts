@@ -14,7 +14,7 @@ export default defineSchema({
   currencies: defineTable({
     coins: v.number(),
     userId: v.id("users"),
-  }),
+  }).index("by_user_id", ["userId"]),
 
   cards: defineTable({
     name: v.string(),
