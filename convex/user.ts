@@ -22,27 +22,54 @@ export const getUser = query({
 });
 
 export const createCurrency = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("currencies", { userId: args.userId, coins: 0 });
-  },
-});
-
-export const getUserCurrencies = query({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
 
     if (!userId) throw new Error("Not authenticated");
 
-    const existing = await ctx.db
+    await ctx.db.insert("currencies", { userId, coins: 0 });
+  },
+});
+
+export const getUserCoins = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) throw new Error("Not authenticated");
+
+    const currency = await ctx.db
       .query("currencies")
       .filter((q) => q.eq(q.field("userId"), userId))
       .first();
 
-    if (existing) {
-      return existing.coins;
+    if (currency) {
+      return currency.coins;
     }
+
+    return null;
+  },
+});
+
+export const getOrCreateUserCoins = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+
+    if (!userId) throw new Error("Not authenticated");
+
+    const currency = await ctx.db
+      .query("currencies")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .first();
+
+    if (!currency) {
+      await ctx.db.insert("currencies", { userId, coins: 0 });
+      return 0;
+    }
+
+    return currency.coins;
   },
 });
 
