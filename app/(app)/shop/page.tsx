@@ -1,21 +1,42 @@
 "use client";
 
 import Pack from "@/components/features/pack";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export default function Shop() {
+  const packs = useQuery(api.pack.getPacks, {});
+
   return (
     <>
       <main className="p-8 grid grid-cols-4 gap-8">
-        <Pack
-          title="Standar Pack"
-          imageSrc="https://placehold.co/600x400/0000FF/FFFFFF/png"
-          description="Can get any card from the Talca TCG universe."
-        />
-        <Pack
-          title="Culinary Excellence"
-          imageSrc="https://placehold.co/600x400/FF0000/FFFFFF/png"
-          description="Your favorite fast food its ready to fight."
-        />
+        {packs ? (
+          packs.map((p, index) => (
+            <Pack
+              key={index}
+              id={p._id}
+              title={p.title}
+              imageSrc={p.imageSrc}
+              description={p.description}
+            />
+          ))
+        ) : (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No Packs Loaded</EmptyTitle>
+              <EmptyDescription>
+                This is probably a conection error, check discord if the game is
+                broken or server is down
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </main>
     </>
   );
