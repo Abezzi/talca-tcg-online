@@ -24,7 +24,7 @@ export default defineSchema({
       v.literal("trap"),
       v.literal("spell"),
     ),
-    atack: v.optional(v.number()),
+    attack: v.optional(v.number()),
     defense: v.optional(v.number()),
     rarity: v.union(
       v.literal("n"),
@@ -49,10 +49,12 @@ export default defineSchema({
   user_unlocked_cards: defineTable({
     userId: v.id("users"),
     cardId: v.id("cards"),
+    quantity: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_user_card", ["userId", "cardId"])
-    .index("by_card", ["cardId"]),
+    .index("by_card", ["cardId"])
+    .index("by_user_quantity", ["quantity"]),
 
   // decks :: 1:N user:decks
   decks: defineTable({
@@ -82,5 +84,5 @@ export default defineSchema({
   cards_in_packs: defineTable({
     packId: v.id("packs"),
     cardId: v.id("cards"),
-  }),
+  }).index("by_pack", ["packId"]),
 });
