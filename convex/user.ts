@@ -74,20 +74,31 @@ export const getOrCreateUserCoins = mutation({
 
 export const getUserCards = query({
   args: {},
-
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
 
-    const cards = await getManyVia(
-      ctx.db,
-      "user_unlocked_cards",
-      "cardId",
-      "by_user_card",
-      userId,
-      "userId",
+    const unlockedEntries = await ctx.db
+      .query("user_unlocked_cards")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+
+    const cardsWithQuantity = await Promise.all(
+      unlockedEntries.map(async (entry) => {
+        const card = await ctx.db.get(entry.cardId);
+        if (!card) return null; // rare case: card was deleted
+
+        return {
+          ...card,
+          quantity: entry.quantity,
+          // userId: entry.userId, just in case is needed in the future
+        };
+      }),
     );
 
-    return cards;
+    // filter out nulls if a card is deleted
+    return cardsWithQuantity.filter(
+      (item): item is NonNullable<typeof item> => item !== null,
+    );
   },
 });
