@@ -9,6 +9,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 export default function CreateDeck() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,21 +25,30 @@ export default function CreateDeck() {
     card?.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const addToDeck = (card: Card) => {
+  const addToDeck = (card: Card & { quantity: number }) => {
+    // prevent weird cases
+    if (!card?._id) return;
     // max amount of cards in the deck
     if (deckCards.length >= 60) return;
 
-    // max duplicates limited to 3
-    if (card._id) {
-      const currentCount = deckCardCounts[card._id] ?? 0;
-      if (currentCount >= 3) {
-        console.log("already has 3");
-        return;
-      }
+    const ownedQuantity = card.quantity ?? 0;
+    const currentInDeck = deckCardCounts[card._id] ?? 0;
 
-      setDeckCards([...deckCards, card]);
-      setDeckCardCounts({ ...deckCardCounts, [card._id]: currentCount + 1 });
+    if (currentInDeck >= 3) {
+      toast.info("Already has 3");
+      return;
     }
+
+    if (currentInDeck >= ownedQuantity) {
+      toast.error("Not enough cards", {
+        description: `You only own: ${ownedQuantity} of ${card.name}`,
+      });
+      return;
+    }
+
+    // max duplicates limited to 3
+    setDeckCards([...deckCards, card]);
+    setDeckCardCounts({ ...deckCardCounts, [card._id]: currentInDeck + 1 });
   };
 
   return (
@@ -75,6 +85,9 @@ export default function CreateDeck() {
                         <div className="font-bold">{card?.name}</div>
                         <div className="text-stone-400">
                           Type: {card?.cardType}
+                        </div>
+                        <div className="text-stone-400">
+                          quantity: {card?.quantity}
                         </div>
                       </div>
                     </div>
