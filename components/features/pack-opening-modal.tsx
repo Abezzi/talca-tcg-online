@@ -8,12 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CardReveal } from "./card-reveal";
-import { Card } from "@/types/card";
+import { Card as CardType } from "@/types/card";
 
 type PackOpeningModalProps = {
   open: boolean;
   onOpenChangeAction: (open: boolean) => void;
-  cards: Card[];
+  cards: CardType[];
   packTitle?: string;
 };
 
@@ -39,7 +39,7 @@ export function PackOpeningModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-6">
           {cards.map((card, idx) => (
-            <CardReveal key={idx} card={card} index={idx} />
+            <CardReveal key={idx} card={card} index={idx} size="normal" />
           ))}
         </div>
 
@@ -47,7 +47,7 @@ export function PackOpeningModal({
           <Button variant="outline" onClick={() => onOpenChangeAction(false)}>
             Close
           </Button>
-          {/* You can add "Add to Deck" or "Continue Opening" later */}
+          {/* TODO: open one more? */}
         </div>
       </DialogContent>
     </Dialog>

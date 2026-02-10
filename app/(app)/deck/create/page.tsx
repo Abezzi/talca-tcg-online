@@ -10,6 +10,7 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { CardReveal } from "@/components/features/card-reveal";
 
 export default function CreateDeck() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,7 +19,7 @@ export default function CreateDeck() {
   const [deckCardCounts, setDeckCardCounts] = useState<Record<string, number>>(
     {},
   );
-  // load users' cards
+  // load users cards
   const cards = useQuery(api.user.getUserCards, {});
 
   const filteredCards = cards?.filter((card) =>
@@ -55,7 +56,7 @@ export default function CreateDeck() {
     <div className="min-h-screen text-white">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-4">
         <aside className="border-r border-stone-200 dark:border-stone-700 bg-background/80 lg:col-span-1">
-          <div className="sticky top-0 z-10 border-b border-stone-900 bg-inherit p-4">
+          <div className="sticky top-0 z-10 border-b border-stone-900 bg-inherit p-2">
             <div className="relative">
               <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
@@ -68,31 +69,17 @@ export default function CreateDeck() {
           </div>
 
           <ScrollArea className="h-[calc(100vh-88px)]">
-            <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-2">
-              {filteredCards?.map((card) => (
-                <Button
+            <div className="grid grid-cols-2 p-0 sm:grid-cols-3 lg:grid-cols-2">
+              {filteredCards?.map((card, idx) => (
+                <div
                   key={card?._id}
-                  variant="ghost"
                   className="h-auto p-2 transition-all hover:bg-stone-800/50"
                   onClick={() => {
                     if (card) addToDeck(card);
                   }}
                 >
-                  {/* card content of each card in the side menu */}
-                  <div className="relative aspect-3/4 w-full">
-                    <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-stone-600 bg-gray-800 text-xs">
-                      <div className="text-center">
-                        <div className="font-bold">{card?.name}</div>
-                        <div className="text-stone-400">
-                          Type: {card?.cardType}
-                        </div>
-                        <div className="text-stone-400">
-                          quantity: {card?.quantity}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Button>
+                  <CardReveal key={idx} card={card} index={idx} size="small" />
+                </div>
               ))}
             </div>
           </ScrollArea>
@@ -126,9 +113,9 @@ export default function CreateDeck() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {Object.entries(deckCardCounts).map(([cardIdStr, count]) => {
+              {Object.entries(deckCardCounts).map(([cardIdStr, count], idx) => {
                 const cardId = cardIdStr;
-                // Find the card object from allCards (or from deckCards — both work)
+                // find the card object from allCards
                 const card =
                   cards?.find((c) => c?._id === cardId) ??
                   deckCards.find((c) => c._id === cardId);
@@ -139,15 +126,15 @@ export default function CreateDeck() {
                   <div
                     key={card._id}
                     className="group relative"
-                    // Click removes ONE copy
+                    // click removes one copy
                     onClick={() => {
                       if (card._id) {
                         const currentCount = deckCardCounts[card._id] ?? 0;
                         const newCount = currentCount - 1;
 
-                        if (currentCount <= 0) return; // safety guard
+                        if (currentCount <= 0) return;
 
-                        // Find and remove one instance from the deckCards array
+                        // find and remove one instance from the deckCards array
                         const index = deckCards.findIndex(
                           (c) => c._id === card._id,
                         );
@@ -156,7 +143,7 @@ export default function CreateDeck() {
 
                         setDeckCards(deckCards.filter((_, i) => i !== index));
 
-                        // Update counts
+                        // update counts
                         setDeckCardCounts((prev) => {
                           if (newCount <= 0) {
                             const newCounts = { ...prev };
@@ -171,27 +158,23 @@ export default function CreateDeck() {
                       }
                     }}
                   >
-                    <div className="aspect-3/4 cursor-pointer rounded-lg border-2 border-stone-700 bg-gray-900 transition-all hover:border-red-600">
-                      <div className="flex h-full flex-col items-center justify-center p-2">
-                        <div className="line-clamp-2 text-center text-sm font-semibold">
-                          {card.name}
-                        </div>
-                        <div className="mt-1 text-xs text-stone-400">
-                          type: {card.cardType}
-                        </div>
-                      </div>
+                    <CardReveal
+                      key={card._id}
+                      card={card}
+                      index={idx}
+                      size="small"
+                    />
 
-                      {/* Count Badge - only show if > 1 */}
-                      {count > 1 && (
-                        <div className="absolute right-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800/90 text-sm font-bold text-white shadow-lg">
-                          x{count}
-                        </div>
-                      )}
-
-                      {/* Remove Overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-red-900/70 opacity-0 transition-opacity group-hover:opacity-100">
-                        <span className="font-bold text-white">Remove</span>
+                    {/* count badge - only show if > 1 */}
+                    {count > 1 && (
+                      <div className="absolute left-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800/90 text-sm font-bold text-white shadow-lg">
+                        x{count}
                       </div>
+                    )}
+
+                    {/* remove overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-red-900/70 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="font-bold text-white">Remove</span>
                     </div>
                   </div>
                 );

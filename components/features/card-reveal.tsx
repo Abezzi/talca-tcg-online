@@ -14,9 +14,15 @@ import { Icon } from "@iconify/react";
 type CardRevealProps = {
   card: CardType;
   index: number; // for stagger animation or numbering
+  size?: "normal" | "small" | "large";
 };
 
-export function CardReveal({ card, index }: CardRevealProps) {
+export function CardReveal({ card, index, size = "normal" }: CardRevealProps) {
+  const isSmall = size === "small";
+  const isLarge = size === "large";
+
+  const textSize = isSmall ? "text-xs" : isLarge ? "text-lg" : "text-base";
+
   const rarityStyles = {
     n: "bg-gray-200 text-gray-800 border-gray-300",
     r: "bg-green-200 text-green-800 border-green-300",
@@ -24,12 +30,12 @@ export function CardReveal({ card, index }: CardRevealProps) {
     ur: "bg-purple-200 text-purple-800 border-purple-400 font-bold animate-pulse",
   };
 
-  const rarityLabel = {
-    n: "Normal",
-    r: "Rare",
-    sr: "Super Rare",
-    ur: "Ultra Rare",
-  };
+  // const rarityLabel = {
+  //   n: "Normal",
+  //   r: "Rare",
+  //   sr: "Super Rare",
+  //   ur: "Ultra Rare",
+  // };
 
   const cardTypeStyle = {
     normal:
@@ -42,14 +48,16 @@ export function CardReveal({ card, index }: CardRevealProps) {
   return (
     <Card
       className={cn(
-        "w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:scale-105",
+        "pt-4 w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:scale-105",
         cardTypeStyle[card.cardType] || "bg-white",
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <CardHeader className="">
+      <CardHeader>
         <div className="flex justify-between items-start gap-2">
-          <CardTitle className="text-lg leading-tight">{card.name}</CardTitle>
+          <CardTitle className={(cn("leading-tight"), textSize)}>
+            {card.name}
+          </CardTitle>
           <Badge
             className={cn(
               "text-xs px-2 py-0.5 uppercase",
@@ -66,7 +74,12 @@ export function CardReveal({ card, index }: CardRevealProps) {
         </div>
 
         {/* art */}
-        <div className="h-44 bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center text-white text-2xl font-bold">
+        <div
+          className={cn(
+            "h-44 bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center text-white text-2xl font-bold",
+            textSize,
+          )}
+        >
           {card.name}
         </div>
 
@@ -102,19 +115,33 @@ export function CardReveal({ card, index }: CardRevealProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="text-sm">
+      <CardContent>
         {card.effect ? (
-          <CardDescription className="text-slate-800 leading-relaxed bg-stone-100/70 border border-double border-stone-400 p-1">
+          <CardDescription
+            className={cn(
+              "justify-evenly text-slate-800 leading-relaxed bg-stone-100/70 border border-double border-stone-400 p-1 overflow-hidden text-justify min-h-[140px]",
+              textSize,
+            )}
+          >
             {card.effect}
           </CardDescription>
         ) : (
           <p className="text-muted-foreground italic">No effect text</p>
         )}
       </CardContent>
+
       <CardFooter className="justify-end">
-        {card.cardType === "normal" && (
+        {card.cardType === "normal" ? (
           <p className="text-xs text-stone-900 italic font-bold">
             ATK: {card.attack} / DEF: {card.defense}
+          </p>
+        ) : card.cardType === "spell" ? (
+          <p className="text-xs text-stone-900 italic font-bold capitalize">
+            {card.spellType} spell card
+          </p>
+        ) : (
+          <p className="text-xs text-stone-900 italic font-bold capitalize">
+            {card.trapType} trap card
           </p>
         )}
       </CardFooter>
