@@ -40,9 +40,33 @@ export default defineSchema({
         v.literal("food"),
       ),
     ),
+    spellType: v.optional(
+      v.union(
+        v.literal("normal"),
+        v.literal("quick-play"),
+        v.literal("equip"),
+        v.literal("continuous"),
+      ),
+    ),
+    trapType: v.optional(
+      v.union(
+        v.literal("normal"),
+        v.literal("counter"),
+        v.literal("monster"),
+        v.literal("continuous"),
+      ),
+    ),
     archetype: v.optional(v.union(v.literal("Completos"))),
     effect: v.optional(v.string()),
     deck: v.union(v.literal("Deck"), v.literal("Extra Deck")),
+    status: v.optional(
+      v.union(
+        v.literal("unlimited"),
+        v.literal("semi-limited"),
+        v.literal("limited"),
+        v.literal("forbidden"),
+      ),
+    ),
   }).index("by_name", ["name"]),
 
   // N:M users:cards

@@ -132,9 +132,12 @@ export const userBuysPack = mutation({
         defense: c!.defense,
         rarity: c!.rarity,
         monsterType: c!.monsterType,
+        spellType: c!.spellType,
+        trapType: c!.trapType,
         archetype: c!.archetype,
         effect: c!.effect,
         decK: c!.deck,
+        status: c!.status,
       })),
     };
   },

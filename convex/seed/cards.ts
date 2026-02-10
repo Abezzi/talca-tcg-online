@@ -16,6 +16,7 @@ const cards: Array<Card> = [
     effect:
       "If you control a 'Completos' monster: You can Special Summon this card from your hand.",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Completos Bread",
@@ -29,6 +30,7 @@ const cards: Array<Card> = [
     effect:
       "If this card is Normal or Special summoned. You can add 1 'Completos' monster from your deck to your hand. except 'Completos Sausage'",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Completos Tomato",
@@ -42,6 +44,7 @@ const cards: Array<Card> = [
     effect:
       "If you control a 'Completos' monster: You can Special Summon this card from your hand.",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Completos Palta",
@@ -55,6 +58,7 @@ const cards: Array<Card> = [
     effect:
       "If you control a 'Completos' monster: You can Special Summon this card from your hand.",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Completos Mayonnaise",
@@ -68,6 +72,7 @@ const cards: Array<Card> = [
     effect:
       "If you control a 'Completos' monster: You can Special Summon this card from your hand.",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Completos Ketchup",
@@ -81,6 +86,7 @@ const cards: Array<Card> = [
     effect:
       "If you control a 'Completos' monster: You can Special Summon this card from your hand.",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Completos Mustard",
@@ -94,74 +100,7 @@ const cards: Array<Card> = [
     effect:
       "If you control a 'Completos' monster: You can Special Summon this card from your hand.",
     deck: "Deck",
-  },
-  // Trap cards (no attack/defense)
-  {
-    name: "Completos Pot",
-    level: 0,
-    cardType: "trap",
-    rarity: "sr",
-    archetype: "Completos",
-    effect:
-      "Target 1 'Completos' Monster you control; Special Summon from your Deck, 1 'Completos' Monster with a different Rank than that monster you control; Immediately after this effect resolves, Synchro Summon using this card you control.",
-    deck: "Deck",
-  },
-  {
-    name: "Food Quality Assurance",
-    level: 0,
-    cardType: "trap",
-    rarity: "r",
-    effect:
-      "When your opponent activates a card or effect: Tribute 1 Level 5 or higher Food monster; negate that effect, and if you do, destroy that card.",
-    deck: "Deck",
-  },
-
-  // Spell cards
-  {
-    name: "Golden Fork",
-    level: 0,
-    cardType: "spell",
-    rarity: "n",
-    effect:
-      "A Food-Type monster equipped with this card increases its ATK and DEF by 300 points",
-    deck: "Deck",
-  },
-  {
-    name: "Completos Leftovers",
-    level: 0,
-    cardType: "spell",
-    rarity: "r",
-    archetype: "Completos",
-    effect:
-      "Target 1 'Completos' Monster in your GY; Special Summon it, but negate its effects",
-    deck: "Deck",
-  },
-  {
-    name: "Counterspell",
-    level: 0,
-    cardType: "spell",
-    rarity: "sr",
-    effect:
-      "Target 1 face-up Spell on the field; negate its effects (until the end of this turn)",
-    deck: "Deck",
-  },
-  {
-    name: "Daniel the Honest",
-    level: 0,
-    cardType: "spell",
-    rarity: "sr",
-    effect:
-      "Target 1 face-up Trap on the field; negate its effects (until the end of this turn)",
-    deck: "Deck",
-  },
-  {
-    name: "Crowd Control",
-    level: 0,
-    cardType: "spell",
-    rarity: "sr",
-    effect:
-      "Target 1 face-up monster your opponent controls; negate its effects (until the end of this turn)",
-    deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Joe Momma",
@@ -173,6 +112,7 @@ const cards: Array<Card> = [
     effect:
       "If this card battles a monster, neither can be destroyed by that battle.",
     deck: "Deck",
+    status: "unlimited",
   },
   {
     name: "Rat Chef",
@@ -185,6 +125,89 @@ const cards: Array<Card> = [
     effect:
       "You can discard this card, then activate 1 of these effect \n - Add 1 'Food Type' monster from your graveyard to your hand, except 'Rat Chef'",
     deck: "Deck",
+    status: "unlimited",
+  },
+  // Trap cards (no attack/defense)
+  {
+    name: "Completos Pot",
+    level: 0,
+    cardType: "trap",
+    rarity: "sr",
+    archetype: "Completos",
+    trapType: "normal",
+    effect:
+      "Target 1 'Completos' Monster you control; Special Summon from your Deck, 1 'Completos' Monster with a different Rank than that monster you control; Immediately after this effect resolves, Synchro Summon using this card you control.",
+    deck: "Deck",
+    status: "unlimited",
+  },
+  {
+    name: "Food Quality Assurance",
+    level: 0,
+    cardType: "trap",
+    rarity: "r",
+    trapType: "normal",
+    effect:
+      "When your opponent activates a card or effect: Tribute 1 Level 5 or higher Food monster; negate that effect, and if you do, destroy that card.",
+    deck: "Deck",
+    status: "unlimited",
+  },
+
+  // Spell cards
+  {
+    name: "Golden Fork",
+    level: 0,
+    cardType: "spell",
+    rarity: "n",
+    spellType: "equip",
+    effect:
+      "A Food-Type monster equipped with this card increases its ATK and DEF by 300 points",
+    deck: "Deck",
+    status: "unlimited",
+  },
+  {
+    name: "Completos Leftovers",
+    level: 0,
+    cardType: "spell",
+    rarity: "r",
+    archetype: "Completos",
+    spellType: "normal",
+    effect:
+      "Target 1 'Completos' Monster in your GY; Special Summon it, but negate its effects",
+    deck: "Deck",
+    status: "unlimited",
+  },
+  {
+    name: "Counterspell",
+    level: 0,
+    cardType: "spell",
+    rarity: "sr",
+    spellType: "quick-play",
+    effect:
+      "Target 1 face-up Spell on the field; negate its effects (until the end of this turn)",
+    deck: "Deck",
+    status: "unlimited",
+  },
+  {
+    name: "Daniel the Honest",
+    level: 0,
+    cardType: "spell",
+    rarity: "sr",
+    spellType: "quick-play",
+    effect:
+      "Target 1 face-up Trap on the field; negate its effects (until the end of this turn)",
+    deck: "Deck",
+    status: "unlimited",
+  },
+  {
+    name: "Crowd Control",
+    level: 0,
+    cardType: "spell",
+    rarity: "sr",
+    spellType: "quick-play",
+    effect:
+      "Target 1 face-up monster your opponent controls; negate its effects (until the end of this turn)",
+    deck: "Deck",
+    status: "unlimited",
   },
 ];
 export const seed = internalMutation({

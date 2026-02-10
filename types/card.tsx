@@ -7,9 +7,12 @@ export type Card = {
   defense?: number;
   rarity: "n" | "r" | "sr" | "ur";
   monsterType?: "beast" | "human" | "fairy" | "food";
+  spellType?: "normal" | "quick-play" | "equip" | "continuous";
+  trapType?: "normal" | "counter" | "continuous" | "monster";
   archetype?: "Completos";
   effect?: string;
   deck: "Deck" | "Extra Deck";
+  status?: "unlimited" | "semi-limited" | "limited" | "forbidden";
 };
 
 export type ObtainedCard = {
