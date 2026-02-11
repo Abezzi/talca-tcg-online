@@ -60,9 +60,9 @@ export default function CreateDeck() {
       toast.error("Deck name is required");
       return;
     }
-    // FIXME: DELETE THIS
-    if (deckCards.length === 0) {
-      toast.error("Deck must have at least one card");
+
+    if (deckCards.length < 40 || deckCards.length > 60) {
+      toast.error("Deck must have beetwen 40 and 60 cards");
       return;
     }
     try {
@@ -231,6 +231,7 @@ export default function CreateDeck() {
               onClick={handleSave}
               size="lg"
               className="bg-stone-700 px-12 hover:bg-stone-600"
+              disabled={deckCards.length < 40 || deckCards.length > 60}
             >
               Save Deck
             </Button>
