@@ -14,7 +14,7 @@ import { CardReveal } from "@/components/features/card-reveal";
 
 export default function CreateDeck() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [deckName, setDeckName] = useState("My Awesome Deck");
+  const [deckName, setDeckName] = useState("");
   const [deckCards, setDeckCards] = useState<Card[]>([]);
   const [deckCardCounts, setDeckCardCounts] = useState<Record<string, number>>(
     {},
@@ -78,22 +78,33 @@ export default function CreateDeck() {
                     if (card) addToDeck(card);
                   }}
                 >
-                  <CardReveal key={idx} card={card} index={idx} size="small" />
+                  <div className="relative">
+                    <CardReveal
+                      key={idx}
+                      card={card}
+                      index={idx}
+                      size="small"
+                    />
+                    <div className="hover:scale-105 absolute left-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800/90 text-sm font-bold text-white shadow-lg">
+                      <p>x{card.quantity}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </ScrollArea>
         </aside>
         {/* main deck area */}
-        <main className="p-6 lg:col-span-3 lg:p-12">
+        <main className="p-6 lg:col-span-3">
           <div className="mx-auto max-w-5xl">
             {/* Deck Name */}
-            <div className="mb-8 flex flex-row gap-2">
+            <div className="mb-4 flex flex-row gap-2">
               <Input
                 value={deckName}
                 onChange={(e) => setDeckName(e.target.value)}
-                className="border-stone-700 bg-background/30 pl-10 focus:border-stone-500 text-stone-900 dark:text-stone-100"
-                placeholder="Enter deck name..."
+                className="border-stone-700 bg-background/30 focus:border-stone-500 text-stone-900 dark:text-stone-100"
+                placeholder="Deck name..."
+                required
               />
               <p
                 className={`align-bottom text-lg text-nowrap ${deckCards.length < 40 ? "text-stone-400" : ""}`}
@@ -102,7 +113,7 @@ export default function CreateDeck() {
               </p>
             </div>
 
-            <Separator className="mb-8 bg-stone-200 dark:bg-stone-700" />
+            <Separator className="mb-4 bg-stone-200 dark:bg-stone-700" />
           </div>
 
           {/* cards on the deck */}
@@ -112,7 +123,7 @@ export default function CreateDeck() {
               <p>Click cards on the left to add them to your deck</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5">
               {Object.entries(deckCardCounts).map(([cardIdStr, count], idx) => {
                 const cardId = cardIdStr;
                 // find the card object from allCards

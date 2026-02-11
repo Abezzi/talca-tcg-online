@@ -39,21 +39,21 @@ export function CardReveal({ card, index, size = "normal" }: CardRevealProps) {
 
   const cardTypeStyle = {
     normal:
-      "bg-radial from-slate-200 from-40% to-stone-400 text-gray-800 border-gray-300",
+      "bg-radial from-stone-100 from-40% to-stone-400 text-gray-800 border-gray-300",
     spell:
-      "bg-radial from-green-200 from-40% to-emerald-400 text-emerald-800 border-emerald-300",
-    trap: "bg-radial from-pink-200 from-40% to-fuchsia-400 text-pink-800 border-pink-300",
+      "bg-radial from-emerald-200 from-40% to-emerald-500 text-emerald-800 border-emerald-300",
+    trap: "bg-radial from-pink-100 from-40% to-pink-400 text-pink-800 border-pink-300",
   };
 
   return (
     <Card
       className={cn(
-        "pt-4 w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:scale-105",
+        "py-2 w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:scale-105",
         cardTypeStyle[card.cardType] || "bg-white",
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <CardHeader>
+      <CardHeader className="px-2">
         <div className="flex justify-between items-start gap-2">
           <CardTitle className={(cn("leading-tight"), textSize)}>
             {card.name}
@@ -115,7 +115,7 @@ export function CardReveal({ card, index, size = "normal" }: CardRevealProps) {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-2">
         {card.effect ? (
           <CardDescription
             className={cn(

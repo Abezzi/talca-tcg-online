@@ -39,7 +39,7 @@ export function PackOpeningModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-6">
           {cards.map((card, idx) => (
-            <CardReveal key={idx} card={card} index={idx} size="normal" />
+            <CardReveal key={idx} card={card} index={idx} />
           ))}
         </div>
 
