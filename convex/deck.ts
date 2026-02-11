@@ -1,5 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const createDeck = mutation({
@@ -38,5 +38,19 @@ export const createDeck = mutation({
     }
 
     return deckId;
+  },
+});
+
+export const getUserDecks = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    return await ctx.db
+      .query("decks")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .order("desc")
+      .collect();
   },
 });
