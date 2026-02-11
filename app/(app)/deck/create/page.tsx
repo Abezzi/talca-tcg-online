@@ -5,12 +5,13 @@ import type { Card } from "@/types/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { CardReveal } from "@/components/features/card-reveal";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function CreateDeck() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,6 +51,37 @@ export default function CreateDeck() {
     // max duplicates limited to 3
     setDeckCards([...deckCards, card]);
     setDeckCardCounts({ ...deckCardCounts, [card._id]: currentInDeck + 1 });
+  };
+
+  const createDeckMutation = useMutation(api.deck.createDeck);
+
+  const handleSave = async () => {
+    if (!deckName.trim()) {
+      toast.error("Deck name is required");
+      return;
+    }
+    // FIXME: DELETE THIS
+    if (deckCards.length === 0) {
+      toast.error("Deck must have at least one card");
+      return;
+    }
+    try {
+      const entries = Object.entries(deckCardCounts).map(
+        ([cardIdStr, quantity]) => ({
+          cardId: cardIdStr as Id<"cards">,
+          quantity,
+        }),
+      );
+      await createDeckMutation({ name: deckName, entries });
+      toast.success("Deck saved successfully!");
+      // Optional: Reset the form after save
+      setDeckName("");
+      setDeckCards([]);
+      setDeckCardCounts({});
+    } catch (error) {
+      console.error("Error saving deck:", error);
+      toast.error("Failed to save deck. Please try again.");
+    }
   };
 
   return (
@@ -195,7 +227,11 @@ export default function CreateDeck() {
 
           {/* save button */}
           <div className="mt-12 text-center">
-            <Button size="lg" className="bg-stone-700 px-12 hover:bg-stone-600">
+            <Button
+              onClick={handleSave}
+              size="lg"
+              className="bg-stone-700 px-12 hover:bg-stone-600"
+            >
               Save Deck
             </Button>
           </div>
