@@ -109,4 +109,98 @@ export default defineSchema({
     packId: v.id("packs"),
     cardId: v.id("cards"),
   }).index("by_pack", ["packId"]),
+
+  matchmaking_queue: defineTable({
+    userId: v.id("users"),
+    deckId: v.id("decks"),
+    status: v.union(
+      v.literal("waiting"),
+      v.literal("matched"),
+      v.literal("canceled"),
+      v.literal("expired"),
+    ),
+    mode: v.union(v.literal("ranked"), v.literal("unranked")),
+    joinedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_user", ["userId"])
+    .index("by_status_joined", ["status", "joinedAt"]),
+
+  game_rooms: defineTable({
+    // preparation
+    player1Id: v.id("users"),
+    player2Id: v.optional(v.id("users")), // null until matched
+    player1Deck: v.id("decks"),
+    player2Deck: v.optional(v.id("decks")),
+    status: v.union(
+      v.literal("waiting_for_player_2"),
+      v.literal("active"),
+      v.literal("finished"),
+      v.literal("aborted"),
+    ),
+    winnerId: v.optional(v.id("users")),
+    startedAt: v.optional(v.number()),
+    finishedAt: v.optional(v.number()),
+    // current game progress
+    phase: v.optional(
+      v.union(
+        v.literal("draw"),
+        v.literal("standby"),
+        v.literal("main1"),
+        v.literal("battle"),
+        v.literal("main2"),
+        v.literal("end"),
+      ),
+    ),
+    turnNumber: v.optional(v.number()),
+    // player states
+    player1State: v.object({
+      lifePoints: v.number(),
+      hand: v.array(v.id("cards")),
+      field: v.array(v.any()),
+      deckSize: v.number(),
+      graveyard: v.array(v.id("cards")),
+      banished: v.array(v.id("cards")),
+      extraDeck: v.array(v.id("cards")),
+    }),
+    player2State: v.object({
+      lifePoints: v.number(),
+      hand: v.array(v.id("cards")),
+      field: v.array(v.any()),
+      deckSize: v.number(),
+      graveyard: v.array(v.id("cards")),
+      banished: v.array(v.id("cards")),
+      extraDeck: v.array(v.id("cards")),
+    }),
+    // shared state
+    currentTurn: v.union(v.literal("player1"), v.literal("player2")),
+    actionsLog: v.optional(
+      v.array(
+        v.object({
+          timestamp: v.number(),
+          turnNumber: v.number(),
+          player: v.union(v.literal("player1"), v.literal("player2")),
+          actionType: v.union(
+            v.literal("draw"),
+            v.literal("normalSummon"),
+            v.literal("specialSummon"),
+            v.literal("set"),
+            v.literal("activated"),
+            v.literal("attacked"),
+          ),
+          cardId: v.optional(v.id("cards")),
+          fromZone: v.optional(v.string()),
+          toZone: v.optional(v.string()),
+          targets: v.optional(v.array(v.any())),
+          description: v.optional(v.string()),
+        }),
+      ),
+    ),
+  })
+    .index("by_player1", ["player1Id"])
+    .index("by_player2", ["player2Id"])
+    .index("by_both_players", ["player1Id", "player2Id"])
+    .index("by_status", ["status"])
+    .index("by_player1_status", ["player1Id", "status"])
+    .index("by_player2_status", ["player2Id", "status"]),
 });
