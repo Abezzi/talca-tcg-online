@@ -9,7 +9,9 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as deck from "../deck.js";
+import type * as game from "../game.js";
 import type * as http from "../http.js";
 import type * as myFunctions from "../myFunctions.js";
 import type * as pack from "../pack.js";
@@ -26,7 +28,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
   deck: typeof deck;
+  game: typeof game;
   http: typeof http;
   myFunctions: typeof myFunctions;
   pack: typeof pack;

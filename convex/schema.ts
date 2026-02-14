@@ -187,6 +187,7 @@ export default defineSchema({
             v.literal("set"),
             v.literal("activated"),
             v.literal("attacked"),
+            v.literal("gameStart"),
           ),
           cardId: v.optional(v.id("cards")),
           fromZone: v.optional(v.string()),
