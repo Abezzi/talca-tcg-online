@@ -1,16 +1,44 @@
 import { mutation, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
 
 function emptyPlayerState() {
   return {
     lifePoints: 8000,
-    hand: [],
-    field: [],
+    hand: [] as Id<"cards">[],
+    field: [] as Id<"cards">[],
+    deck: [] as Id<"cards">[],
     deckSize: 40, // TODO: query actual deck size later
-    graveyard: [],
-    banished: [],
-    extraDeck: [],
+    graveyard: [] as Id<"cards">[],
+    banished: [] as Id<"cards">[],
+    extraDeck: [] as Id<"cards">[],
+  };
+}
+
+function shuffle<T>(array: T[]): T[] {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function drawCards(
+  deckCardIds: Id<"cards">[],
+  count: number,
+): {
+  drawn: Id<"cards">[];
+  remaining: Id<"cards">[];
+} {
+  if (deckCardIds.length < count) {
+    throw new Error(`Not enough cards in deck to draw ${count}`);
+  }
+  const shuffled = shuffle(deckCardIds);
+  return {
+    drawn: shuffled.slice(0, count),
+    remaining: shuffled.slice(count),
   };
 }
 
@@ -108,6 +136,51 @@ export const createGameFromQueue = internalMutation({
 
     const [player1Queue, player2Queue] = waiting;
 
+    // fetch full decks
+    const player1DeckEntries = await ctx.db
+      .query("deck_card_entries")
+      .withIndex("by_deck", (q) => q.eq("deckId", player1Queue.deckId))
+      .collect();
+
+    const player2DeckEntries = await ctx.db
+      .query("deck_card_entries")
+      .withIndex("by_deck", (q) => q.eq("deckId", player2Queue.deckId))
+      .collect();
+
+    // Expand to flat list of card IDs (respecting quantity)
+    const player1DeckCards: Id<"cards">[] = [];
+    for (const entry of player1DeckEntries) {
+      for (let i = 0; i < entry.quantity; i++) {
+        player1DeckCards.push(entry.cardId);
+      }
+    }
+
+    const player2DeckCards: Id<"cards">[] = [];
+    for (const entry of player2DeckEntries) {
+      for (let i = 0; i < entry.quantity; i++) {
+        player2DeckCards.push(entry.cardId);
+      }
+    }
+
+    // shuffle and draw 5 cards eachs
+    const p1Draw = drawCards(player1DeckCards, 5);
+    const p2Draw = drawCards(player2DeckCards, 5);
+
+    // create initial player states
+    const player1InitialState = {
+      ...emptyPlayerState(),
+      hand: p1Draw.drawn,
+      deck: p1Draw.remaining,
+      deckSize: p1Draw.remaining.length,
+    };
+
+    const player2InitialState = {
+      ...emptyPlayerState(),
+      hand: p2Draw.drawn,
+      deck: p2Draw.remaining,
+      deckSize: p2Draw.remaining.length,
+    };
+
     // create the game room
     const gameId = await ctx.db.insert("game_rooms", {
       player1Id: player1Queue.userId,
@@ -123,8 +196,8 @@ export const createGameFromQueue = internalMutation({
       turnNumber: 1,
       phase: "draw",
 
-      player1State: emptyPlayerState(),
-      player2State: emptyPlayerState(),
+      player1State: player1InitialState,
+      player2State: player2InitialState,
 
       actionsLog: [
         {
@@ -147,6 +220,297 @@ export const createGameFromQueue = internalMutation({
     // - log "coin flip" or initial draw in actionLog
 
     return gameId;
+  },
+});
+
+/**
+ * draws 1 card from the current player's deck to their hand.
+ * - validates: active game, player's turn, draw phase, deck not empty
+ * - updates hand, deck, deckSize atomically
+ * - logs the draw (without revealing card ID to opponent)
+ * - if deck empty -> deck out, game ends
+ */
+export const drawCard = mutation({
+  args: { gameId: v.id("game_rooms") },
+  handler: async (ctx, { gameId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // get game
+    const game = await ctx.db.get(gameId);
+    if (!game) throw new Error("Game not found");
+
+    if (game.status !== "active") throw new Error("Game not active");
+
+    // determine which player is caller
+    const isPlayer1 = game.player1Id === userId;
+    const isPlayer2 = game.player2Id === userId;
+    if (!isPlayer1 && !isPlayer2) throw new Error("Not a player in this game");
+
+    const currentPlayer = isPlayer1 ? "player1" : "player2";
+    if (game.currentTurn !== currentPlayer) throw new Error("Not your turn");
+
+    if (game.phase !== "draw") throw new Error("Not draw phase");
+
+    const playerState = isPlayer1 ? game.player1State : game.player2State;
+    if (playerState.deckSize <= 0) {
+      // if deck out then end game
+      const winnerId = isPlayer1 ? game.player2Id : game.player1Id;
+      await ctx.db.patch(gameId, {
+        status: "finished",
+        winnerId,
+        finishedAt: Date.now(),
+        [`player${isPlayer1 ? 2 : 1}State`]: {
+          ...playerState,
+          lifePoints: 0, // deck out loses
+        },
+      });
+      return { result: "deckOut", winnerId };
+    }
+
+    // when draw, pop from deck, push to hand
+    const drawnCardId = playerState.deck[0]; // deck[0] is top card
+    const newHand = [...playerState.hand, drawnCardId];
+    const newDeck = playerState.deck.slice(1);
+    const newDeckSize = newDeck.length;
+
+    // update the specific player state
+    const update: any = {};
+    update[`player${isPlayer1 ? 1 : 2}State`] = {
+      ...playerState,
+      hand: newHand,
+      deck: newDeck,
+      deckSize: newDeckSize,
+    };
+
+    // Log draw (hide card ID from opponent)
+    update.actionsLog = [
+      ...(game.actionsLog ?? []),
+      {
+        timestamp: Date.now(),
+        turnNumber: game.turnNumber,
+        player: currentPlayer,
+        actionType: "draw",
+        description: "Drew 1 card",
+        // cardId: drawnCardId,
+      },
+    ];
+
+    await ctx.db.patch(gameId, update);
+
+    return { result: "success", newHandSize: newHand.length, newDeckSize };
+  },
+});
+
+/**
+ * ends the current player's turn and switches to the opponent.
+ * - validates: active game, player's turn, end phase
+ * - advances turnNumber, switches currentTurn, resets phase to "draw"
+ * - resets per-turn flags (attackedThisTurn, summonedThisTurn, etc.)
+ * - logs the end turn action
+ */
+export const endTurn = mutation({
+  args: { gameId: v.id("game_rooms") },
+  handler: async (ctx, { gameId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    // Get game
+    const game = await ctx.db.get(gameId);
+    if (!game) throw new Error("Game not found");
+
+    if (game.status !== "active") throw new Error("Game not active");
+
+    // determine which player is caller
+    const isPlayer1 = game.player1Id === userId;
+    const isPlayer2 = game.player2Id === userId;
+    if (!isPlayer1 && !isPlayer2) throw new Error("Not a player in this game");
+
+    const currentPlayer = isPlayer1 ? "player1" : "player2";
+    if (game.currentTurn !== currentPlayer) throw new Error("Not your turn");
+
+    if (game.phase !== "end")
+      throw new Error("Must end phase first or be in end phase");
+
+    // switch turn
+    const nextPlayer = currentPlayer === "player1" ? "player2" : "player1";
+
+    // update opponent state: reset per-turn flags
+    const nextPlayerState = isPlayer1
+      ? {
+          ...game.player2State,
+        }
+      : {
+          ...game.player1State,
+        };
+
+    // patch game
+    await ctx.db.patch(gameId, {
+      currentTurn: nextPlayer,
+      turnNumber: game.turnNumber ? game.turnNumber + 1 : 0,
+      phase: "draw", // new turn starts in draw phase
+      [`player${isPlayer1 ? 2 : 1}State`]: nextPlayerState, // reset next player's flags
+      actionsLog: [
+        ...(game.actionsLog ?? []),
+        {
+          timestamp: Date.now(),
+          turnNumber: game.turnNumber,
+          player: currentPlayer,
+          actionType: "endTurn",
+          description: "Ended turn",
+        },
+      ],
+    });
+
+    return {
+      result: "success",
+      nextTurn: nextPlayer,
+      newTurnNumber: game.turnNumber ? game.turnNumber + 1 : 1,
+    };
+  },
+});
+
+export const advancePhase = mutation({
+  args: {
+    gameId: v.id("game_rooms"),
+  },
+  handler: async (ctx, { gameId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthenticated");
+    }
+
+    // fetch current game state
+    const game = await ctx.db.get(gameId);
+    if (!game) {
+      throw new Error("Game not found");
+    }
+
+    if (game.status !== "active") {
+      throw new Error("Game is not active");
+    }
+
+    // check if caller is one of the players
+    const isPlayer1 = game.player1Id === userId;
+    const isPlayer2 = game.player2Id === userId;
+    if (!isPlayer1 && !isPlayer2) {
+      throw new Error("You are not a player in this game");
+    }
+
+    const currentPlayer = isPlayer1 ? "player1" : "player2";
+
+    // must be the current player's turn
+    if (game.currentTurn !== currentPlayer) {
+      throw new Error("It is not your turn");
+    }
+
+    // phase order
+    const phaseOrder = [
+      "draw",
+      "standby",
+      "main1",
+      "battle",
+      "main2",
+      "end",
+    ] as const;
+
+    const currentPhaseIndex = phaseOrder.indexOf(game.phase);
+
+    if (currentPhaseIndex === -1) {
+      throw new Error(`Invalid current phase: ${game.phase}`);
+    }
+
+    if (currentPhaseIndex >= phaseOrder.length - 1) {
+      throw new Error("Already in the final phase (end). Use endTurn instead.");
+    }
+
+    const nextPhase = phaseOrder[currentPhaseIndex + 1];
+
+    // TODO: phase specific effects should be here
+
+    // in draw phase, player draws a card
+    let drawResult: { drawn: Id<"cards">[]; newDeckSize: number } | null = null;
+
+    if (nextPhase === "draw") {
+      // skip draw only on very first turn of player 1
+      const isFirstTurnOfGame =
+        game.turnNumber === 1 && game.currentTurn === "player1";
+
+      if (!isFirstTurnOfGame) {
+        const playerState = isPlayer1 ? game.player1State : game.player2State;
+
+        if (playerState.deckSize <= 0) {
+          // if deck out then lose
+          // const loserId = userId; TODO: see if need this in the future
+          const winnerId = isPlayer1 ? game.player2Id : game.player1Id;
+          await ctx.db.patch(gameId, {
+            status: "finished",
+            winnerId,
+            finishedAt: Date.now(),
+            actionsLog: [
+              ...(game.actionsLog ?? []),
+              {
+                timestamp: Date.now(),
+                turnNumber: game.turnNumber,
+                player: isPlayer1 ? "player1" : "player2",
+                actionType: "deckOut",
+                description: `${currentPlayer} decked out and loses`,
+              },
+            ],
+          });
+          return { result: "deckOut", winnerId };
+        }
+
+        // draw one card
+        const topCard = playerState.deck[0];
+        const newHand = [...playerState.hand, topCard];
+        const newDeck = playerState.deck.slice(1);
+        const newDeckSize = newDeck.length;
+
+        drawResult = { drawn: [topCard], newDeckSize };
+
+        // prepare update for this player
+        const playerStateUpdateKey = isPlayer1
+          ? "player1State"
+          : "player2State";
+        const playerStateUpdate = {
+          ...playerState,
+          hand: newHand,
+          deck: newDeck,
+          deckSize: newDeckSize,
+        };
+
+        await ctx.db.patch(gameId, {
+          [playerStateUpdateKey]: playerStateUpdate,
+        });
+      }
+    }
+
+    // update the game
+    await ctx.db.patch(gameId, {
+      phase: nextPhase,
+      actionsLog: [
+        ...(game.actionsLog ?? []),
+        {
+          timestamp: Date.now(),
+          turnNumber: game.turnNumber,
+          player: currentPlayer,
+          actionType: "advancePhase",
+          description: drawResult
+            ? `Advanced to ${nextPhase} phase and drew a card`
+            : `Advanced to ${nextPhase} phase`,
+        },
+      ],
+    });
+
+    return {
+      success: true,
+      previousPhase: game.phase,
+      newPhase: nextPhase,
+      drewCard: !!drawResult,
+      turnNumber: game.turnNumber,
+      newDeckSize: drawResult?.newDeckSize,
+    };
   },
 });
 
