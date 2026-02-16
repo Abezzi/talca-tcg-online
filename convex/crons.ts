@@ -5,7 +5,7 @@ const crons = cronJobs();
 
 crons.interval(
   "matchmaking:tryMatch",
-  { seconds: 60 },
+  { minutes: 20 },
   internal.game.createGameFromQueue,
 );
 
