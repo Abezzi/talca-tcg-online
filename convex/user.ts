@@ -1,6 +1,5 @@
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { getManyVia } from "convex-helpers/server/relationships";
 
 export const getUser = query({
   // Validators for arguments.
