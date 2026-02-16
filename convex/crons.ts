@@ -5,15 +5,15 @@ const crons = cronJobs();
 
 crons.interval(
   "matchmaking:tryMatch",
-  { seconds: 30 },
+  { seconds: 60 },
   internal.game.createGameFromQueue,
 );
 
 // TODO: cleanup
-// crons.interval(
-//   "matchmaking:cleanup",
-//   { hours: 1 },
-//   internal.game.cleanupOldQueueEntries,
-// );
+crons.interval(
+  "matchmaking:cleanup",
+  { hours: 1 },
+  internal.game.cleanupOldQueueEntries,
+);
 
 export default crons;

@@ -16,6 +16,7 @@ export const getUser = query({
     return {
       viewer: user?.email ?? null,
       name: user?.name ?? null,
+      id: user?._id ?? null,
     };
   },
 });

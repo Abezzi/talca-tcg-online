@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as cards from "../cards.js";
 import type * as crons from "../crons.js";
 import type * as deck from "../deck.js";
 import type * as game from "../game.js";
@@ -28,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  cards: typeof cards;
   crons: typeof crons;
   deck: typeof deck;
   game: typeof game;

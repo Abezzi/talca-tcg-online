@@ -237,3 +237,78 @@ export const cancelQueue = mutation({
     return true;
   },
 });
+
+const MAX_WAITING_AGE_MS = 30 * 60 * 1000;
+const MAX_MATCHED_AGE_MS = 10 * 60 * 1000;
+
+export const cleanupOldQueueEntries = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    console.log("[cron] starting queue cleanup...");
+
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    // clean old waiting entries
+    const oldWaiting = await ctx.db
+      .query("matchmaking_queue")
+      .withIndex("by_status_joined", (q) => q.eq("status", "waiting"))
+      .order("asc")
+      .collect();
+
+    for (const entry of oldWaiting) {
+      const ageMs = now - entry.joinedAt;
+      if (ageMs > MAX_WAITING_AGE_MS) {
+        await ctx.db.delete(entry._id);
+        cleanedCount++;
+        console.log(
+          `[cleanup] Deleted old WAITING entry for user ${entry.userId} ` +
+            `(age: ${Math.round(ageMs / 60000)} min)`,
+        );
+      }
+    }
+
+    // clean old matched entries
+    const potentiallyOldMatched = await ctx.db
+      .query("matchmaking_queue")
+      .filter((q) => q.eq(q.field("status"), "matched"))
+      .collect();
+
+    for (const entry of potentiallyOldMatched) {
+      const ageMs = now - entry.joinedAt;
+
+      if (ageMs > MAX_MATCHED_AGE_MS) {
+        // double check the game still doesn't exist (prevents deleting matched entry if game creation lagged)
+        const relatedGame = await ctx.db
+          .query("game_rooms")
+          .filter((q) =>
+            q.or(
+              q.eq(q.field("player1Id"), entry.userId),
+              q.eq(q.field("player2Id"), entry.userId),
+            ),
+          )
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .first();
+
+        if (!relatedGame) {
+          await ctx.db.delete(entry._id);
+          cleanedCount++;
+          console.log(
+            `[cron] deleted stale matched entry for user ${entry.userId} ` +
+              `(age: ${Math.round(ageMs / 60000)} min, no active game found)`,
+          );
+        } else {
+          console.log(
+            `[cron] skipped matched entry for user ${entry.userId} ` +
+              `(game still exists: ${relatedGame._id})`,
+          );
+        }
+      }
+    }
+
+    console.log(
+      `[cron] cleanup finished, removed ${cleanedCount} entries total.`,
+    );
+    return { cleanedCount };
+  },
+});
