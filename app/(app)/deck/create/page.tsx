@@ -74,7 +74,6 @@ export default function CreateDeck() {
       );
       await createDeckMutation({ name: deckName, entries });
       toast.success("Deck saved successfully!");
-      // Optional: Reset the form after save
       setDeckName("");
       setDeckCards([]);
       setDeckCardCounts({});
@@ -129,7 +128,7 @@ export default function CreateDeck() {
         {/* main deck area */}
         <main className="p-6 lg:col-span-3">
           <div className="mx-auto max-w-5xl">
-            {/* Deck Name */}
+            {/* deck Name */}
             <div className="mb-4 flex flex-row gap-2">
               <Input
                 value={deckName}
