@@ -1,7 +1,12 @@
 import { mutation, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
+
+type DrawCardReturn =
+  | { result: "success"; newHandSize: number; newDeckSize: number }
+  | { result: "deckOut"; winnerId: Id<"users"> };
 
 function emptyPlayerState() {
   return {
@@ -223,6 +228,40 @@ export const createGameFromQueue = internalMutation({
   },
 });
 
+async function performDraw(
+  game: Doc<"game_rooms">,
+  isPlayer1: boolean,
+): Promise<{
+  success: boolean;
+  drawnCardId?: Id<"cards">;
+  newDeckSize: number;
+  deckOut?: boolean;
+  winnerId?: Id<"users">;
+  newHand?: Id<"cards">[];
+  newDeck?: Id<"cards">[];
+}> {
+  const playerStateKey = isPlayer1 ? "player1State" : "player2State";
+  const playerState = game[playerStateKey];
+
+  if (playerState.deckSize <= 0) {
+    const winnerId = isPlayer1 ? game.player2Id : game.player1Id;
+    return { success: false, deckOut: true, winnerId, newDeckSize: 0 };
+  }
+
+  const drawnCardId = playerState.deck[0];
+  const newHand = [...playerState.hand, drawnCardId];
+  const newDeck = playerState.deck.slice(1);
+  const newDeckSize = newDeck.length;
+
+  return {
+    success: true,
+    drawnCardId,
+    newDeckSize,
+    newHand,
+    newDeck,
+  };
+}
+
 /**
  * draws 1 card from the current player's deck to their hand.
  * - validates: active game, player's turn, draw phase, deck not empty
@@ -232,14 +271,13 @@ export const createGameFromQueue = internalMutation({
  */
 export const drawCard = mutation({
   args: { gameId: v.id("game_rooms") },
-  handler: async (ctx, { gameId }) => {
+  handler: async (ctx, { gameId }): Promise<DrawCardReturn> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
 
     // get game
     const game = await ctx.db.get(gameId);
     if (!game) throw new Error("Game not found");
-
     if (game.status !== "active") throw new Error("Game not active");
 
     // determine which player is caller
@@ -249,56 +287,51 @@ export const drawCard = mutation({
 
     const currentPlayer = isPlayer1 ? "player1" : "player2";
     if (game.currentTurn !== currentPlayer) throw new Error("Not your turn");
-
     if (game.phase !== "draw") throw new Error("Not draw phase");
 
-    const playerState = isPlayer1 ? game.player1State : game.player2State;
-    if (playerState.deckSize <= 0) {
-      // if deck out then end game
-      const winnerId = isPlayer1 ? game.player2Id : game.player1Id;
+    const drawResult = await performDraw(game, isPlayer1);
+
+    // in case the player run out of cards loses, (deck out for harambe)
+    if (drawResult.deckOut) {
       await ctx.db.patch(gameId, {
         status: "finished",
-        winnerId,
+        winnerId: drawResult.winnerId,
         finishedAt: Date.now(),
         [`player${isPlayer1 ? 2 : 1}State`]: {
-          ...playerState,
-          lifePoints: 0, // deck out loses
+          ...(isPlayer1 ? game.player2State : game.player1State),
+          lifePoints: 0,
         },
       });
-      return { result: "deckOut", winnerId };
+      if (drawResult.winnerId)
+        return { result: "deckOut", winnerId: drawResult.winnerId };
     }
 
-    // when draw, pop from deck, push to hand
-    const drawnCardId = playerState.deck[0]; // deck[0] is top card
-    const newHand = [...playerState.hand, drawnCardId];
-    const newDeck = playerState.deck.slice(1);
-    const newDeckSize = newDeck.length;
+    const playerStateKey = isPlayer1 ? "player1State" : "player2State";
 
-    // update the specific player state
-    const update: any = {};
-    update[`player${isPlayer1 ? 1 : 2}State`] = {
-      ...playerState,
-      hand: newHand,
-      deck: newDeck,
-      deckSize: newDeckSize,
-    };
-
-    // Log draw (hide card ID from opponent)
-    update.actionsLog = [
-      ...(game.actionsLog ?? []),
-      {
-        timestamp: Date.now(),
-        turnNumber: game.turnNumber,
-        player: currentPlayer,
-        actionType: "draw",
-        description: "Drew 1 card",
-        // cardId: drawnCardId,
+    await ctx.db.patch(gameId, {
+      [playerStateKey]: {
+        ...(isPlayer1 ? game.player1State : game.player2State),
+        hand: drawResult.newHand!,
+        deck: drawResult.newDeck!,
+        deckSize: drawResult.newDeckSize,
       },
-    ];
+      actionsLog: [
+        ...(game.actionsLog ?? []),
+        {
+          timestamp: Date.now(),
+          turnNumber: game.turnNumber,
+          player: currentPlayer,
+          actionType: "draw",
+          description: "Drew 1 card",
+        },
+      ],
+    });
 
-    await ctx.db.patch(gameId, update);
-
-    return { result: "success", newHandSize: newHand.length, newDeckSize };
+    return {
+      result: "success",
+      newHandSize: drawResult.newHand!.length,
+      newDeckSize: drawResult.newDeckSize,
+    };
   },
 });
 
@@ -334,15 +367,11 @@ export const endTurn = mutation({
 
     // switch turn
     const nextPlayer = currentPlayer === "player1" ? "player2" : "player1";
-
+    const nextPlayerKey =
+      nextPlayer === "player1" ? "player1State" : "player2State";
     // update opponent state: reset per-turn flags
-    const nextPlayerState = isPlayer1
-      ? {
-          ...game.player2State,
-        }
-      : {
-          ...game.player1State,
-        };
+    const nextPlayerState =
+      nextPlayer === "player1" ? game.player1State : game.player2State;
 
     // patch game
     await ctx.db.patch(gameId, {
@@ -370,6 +399,11 @@ export const endTurn = mutation({
   },
 });
 
+/**
+ * advances to the next phase, in this order
+ * draw, standby, main1, battle, main2, end
+ * - logs the action
+ */
 export const advancePhase = mutation({
   args: {
     gameId: v.id("game_rooms"),
@@ -413,80 +447,40 @@ export const advancePhase = mutation({
       "main2",
       "end",
     ] as const;
-
     const currentPhaseIndex = phaseOrder.indexOf(game.phase);
-
     if (currentPhaseIndex === -1) {
       throw new Error(`Invalid current phase: ${game.phase}`);
     }
-
     if (currentPhaseIndex >= phaseOrder.length - 1) {
       throw new Error("Already in the final phase (end). Use endTurn instead.");
     }
-
     const nextPhase = phaseOrder[currentPhaseIndex + 1];
 
     // TODO: phase specific effects should be here
 
     // in draw phase, player draws a card
-    let drawResult: { drawn: Id<"cards">[]; newDeckSize: number } | null = null;
-
-    if (nextPhase === "draw") {
+    let drewCard = false;
+    if (nextPhase === "standby") {
       // skip draw only on very first turn of player 1
       const isFirstTurnOfGame =
         game.turnNumber === 1 && game.currentTurn === "player1";
 
       if (!isFirstTurnOfGame) {
-        const playerState = isPlayer1 ? game.player1State : game.player2State;
-
-        if (playerState.deckSize <= 0) {
-          // if deck out then lose
-          // const loserId = userId; TODO: see if need this in the future
-          const winnerId = isPlayer1 ? game.player2Id : game.player1Id;
-          await ctx.db.patch(gameId, {
-            status: "finished",
-            winnerId,
-            finishedAt: Date.now(),
-            actionsLog: [
-              ...(game.actionsLog ?? []),
-              {
-                timestamp: Date.now(),
-                turnNumber: game.turnNumber,
-                player: isPlayer1 ? "player1" : "player2",
-                actionType: "deckOut",
-                description: `${currentPlayer} decked out and loses`,
-              },
-            ],
-          });
-          return { result: "deckOut", winnerId };
+        console.log("should draw here");
+        const drawResult = (await ctx.runMutation(api.game.drawCard, {
+          gameId,
+        })) as DrawCardReturn;
+        // if deckout the game ended, for that reason return the result
+        if (drawResult.result === "deckOut") {
+          return drawResult;
         }
-
-        // draw one card
-        const topCard = playerState.deck[0];
-        const newHand = [...playerState.hand, topCard];
-        const newDeck = playerState.deck.slice(1);
-        const newDeckSize = newDeck.length;
-
-        drawResult = { drawn: [topCard], newDeckSize };
-
-        // prepare update for this player
-        const playerStateUpdateKey = isPlayer1
-          ? "player1State"
-          : "player2State";
-        const playerStateUpdate = {
-          ...playerState,
-          hand: newHand,
-          deck: newDeck,
-          deckSize: newDeckSize,
-        };
-
-        await ctx.db.patch(gameId, {
-          [playerStateUpdateKey]: playerStateUpdate,
-        });
+        if (drawResult.result === "success") {
+          drewCard = true;
+        }
       }
     }
 
-    // update the game
+    // update the game (advance phase)
     await ctx.db.patch(gameId, {
       phase: nextPhase,
       actionsLog: [
@@ -496,7 +490,7 @@ export const advancePhase = mutation({
           turnNumber: game.turnNumber,
           player: currentPlayer,
           actionType: "advancePhase",
-          description: drawResult
+          description: drewCard
             ? `Advanced to ${nextPhase} phase and drew a card`
             : `Advanced to ${nextPhase} phase`,
         },
@@ -507,9 +501,8 @@ export const advancePhase = mutation({
       success: true,
       previousPhase: game.phase,
       newPhase: nextPhase,
-      drewCard: !!drawResult,
+      drewCard,
       turnNumber: game.turnNumber,
-      newDeckSize: drawResult?.newDeckSize,
     };
   },
 });
@@ -627,7 +620,7 @@ export const cleanupOldQueueEntries = internalMutation({
         cleanedCount++;
         console.log(
           `[cleanup] Deleted old WAITING entry for user ${entry.userId} ` +
-            `(age: ${Math.round(ageMs / 60000)} min)`,
+          `(age: ${Math.round(ageMs / 60000)} min)`,
         );
       }
     }
@@ -659,12 +652,12 @@ export const cleanupOldQueueEntries = internalMutation({
           cleanedCount++;
           console.log(
             `[cron] deleted stale matched entry for user ${entry.userId} ` +
-              `(age: ${Math.round(ageMs / 60000)} min, no active game found)`,
+            `(age: ${Math.round(ageMs / 60000)} min, no active game found)`,
           );
         } else {
           console.log(
             `[cron] skipped matched entry for user ${entry.userId} ` +
-              `(game still exists: ${relatedGame._id})`,
+            `(game still exists: ${relatedGame._id})`,
           );
         }
       }
