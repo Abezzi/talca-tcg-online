@@ -9,52 +9,20 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-interface EndTurnButtonProps {
-  gameId: Id<"game_rooms">;
-  disabled: boolean;
-}
-
 interface PhaseButtonProps {
   gameId: Id<"game_rooms">;
   phase: string;
   myTurn: boolean;
 }
 
-function EndTurnButton({ gameId, disabled }: EndTurnButtonProps) {
-  const endTurn = useMutation(api.game.endTurn);
-  return (
-    <Button
-      onClick={async () => {
-        try {
-          await endTurn({ gameId });
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (error: any) {
-          toast.error(error.message);
-        }
-      }}
-      disabled={disabled}
-      className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700"
-    >
-      End Turn
-    </Button>
-  );
-}
-
 function PhaseButton({ gameId, phase, myTurn }: PhaseButtonProps) {
   const advancePhase = useMutation(api.game.advancePhase);
-
-  if (!myTurn) return null;
-
-  if (phase === "end") {
-    return null;
-  }
 
   return (
     <Button
       onClick={async () => {
         try {
           await advancePhase({ gameId });
-          // Optional: toast.success(`Advanced to ${nextPhase}`);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
           toast.error(error.message || "Cannot advance phase");
@@ -62,8 +30,9 @@ function PhaseButton({ gameId, phase, myTurn }: PhaseButtonProps) {
       }}
       variant="outline"
       className="px-6 py-3 text-lg"
+      disabled={!myTurn}
     >
-      Next Phase
+      {phase === "end" ? "End Turn" : "Next Phase"}
     </Button>
   );
 }
@@ -230,14 +199,10 @@ export default function GameRoom() {
             );
           })}
         </div>
-
-        {myTurn && activeGame?.phase === "end" && (
-          <EndTurnButton
-            gameId={activeGame._id}
-            disabled={!myTurn || activeGame.phase !== "end"}
-          />
-        )}
-
+        <p>
+          debug: {activeGame._id} - {activeGame.phase} -{" "}
+          {myTurn ? "my turn" : "not my turn"}
+        </p>
         <PhaseButton
           gameId={activeGame._id}
           phase={activeGame.phase}
