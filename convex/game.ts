@@ -1,4 +1,9 @@
-import { mutation, internalMutation, query } from "./_generated/server";
+import {
+  mutation,
+  internalMutation,
+  query,
+  MutationCtx,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Doc, Id } from "./_generated/dataModel";
@@ -19,6 +24,27 @@ function emptyPlayerState() {
     banished: [] as Id<"cards">[],
     extraDeck: [] as Id<"cards">[],
   };
+}
+
+async function processPhaseEntry(
+  ctx: MutationCtx,
+  game: Doc<"game_rooms">,
+  currentPlayer: "player1" | "player2",
+) {
+  if (game.phase !== "draw") return;
+
+  const isPlayer1 = currentPlayer === "player1";
+  const isFirstTurnOfGame = game.turnNumber === 1 && isPlayer1;
+
+  if (isFirstTurnOfGame) {
+    return;
+  }
+
+  // draw 1 card for the player who just entered draw phase
+  await ctx.runMutation(api.game.drawCard, {
+    gameId: game._id,
+    playerDrawing: currentPlayer,
+  });
 }
 
 function shuffle<T>(array: T[]): T[] {
@@ -219,11 +245,6 @@ export const createGameFromQueue = internalMutation({
     await ctx.db.patch(player1Queue._id, { status: "matched" });
     await ctx.db.patch(player2Queue._id, { status: "matched" });
 
-    // TODO:
-    // - shuffle decks server-side & draw starting hands
-    // - decide who goes first randomly or based on rules
-    // - log "coin flip" or initial draw in actionLog
-
     return gameId;
   },
 });
@@ -270,25 +291,18 @@ async function performDraw(
  * - if deck empty -> deck out, game ends
  */
 export const drawCard = mutation({
-  args: { gameId: v.id("game_rooms") },
-  handler: async (ctx, { gameId }): Promise<DrawCardReturn> => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
-
+  args: {
+    gameId: v.id("game_rooms"),
+    playerDrawing: v.union(v.literal("player1"), v.literal("player2")),
+  },
+  handler: async (ctx, { gameId, playerDrawing }): Promise<DrawCardReturn> => {
+    console.log("drawCard called for:", playerDrawing);
     // get game
     const game = await ctx.db.get(gameId);
     if (!game) throw new Error("Game not found");
     if (game.status !== "active") throw new Error("Game not active");
 
-    // determine which player is caller
-    const isPlayer1 = game.player1Id === userId;
-    const isPlayer2 = game.player2Id === userId;
-    if (!isPlayer1 && !isPlayer2) throw new Error("Not a player in this game");
-
-    const currentPlayer = isPlayer1 ? "player1" : "player2";
-    if (game.currentTurn !== currentPlayer) throw new Error("Not your turn");
-    if (game.phase !== "draw") throw new Error("Not draw phase");
-
+    const isPlayer1: boolean = playerDrawing === "player1";
     const drawResult = await performDraw(game, isPlayer1);
 
     // in case the player run out of cards loses, (deck out for harambe)
@@ -302,15 +316,17 @@ export const drawCard = mutation({
           lifePoints: 0,
         },
       });
-      if (drawResult.winnerId)
-        return { result: "deckOut", winnerId: drawResult.winnerId };
+      return { result: "deckOut", winnerId: drawResult.winnerId! };
     }
 
-    const playerStateKey = isPlayer1 ? "player1State" : "player2State";
+    const playerStateKey =
+      playerDrawing === "player1" ? "player1State" : "player2State";
 
     await ctx.db.patch(gameId, {
       [playerStateKey]: {
-        ...(isPlayer1 ? game.player1State : game.player2State),
+        ...(playerDrawing === "player1"
+          ? game.player1State
+          : game.player2State),
         hand: drawResult.newHand!,
         deck: drawResult.newDeck!,
         deckSize: drawResult.newDeckSize,
@@ -320,7 +336,7 @@ export const drawCard = mutation({
         {
           timestamp: Date.now(),
           turnNumber: game.turnNumber,
-          player: currentPlayer,
+          player: playerDrawing,
           actionType: "draw",
           description: "Drew 1 card",
         },
@@ -336,70 +352,6 @@ export const drawCard = mutation({
 });
 
 /**
- * ends the current player's turn and switches to the opponent.
- * - validates: active game, player's turn, end phase
- * - advances turnNumber, switches currentTurn, resets phase to "draw"
- * - resets per-turn flags (attackedThisTurn, summonedThisTurn, etc.)
- * - logs the end turn action
- */
-export const endTurn = mutation({
-  args: { gameId: v.id("game_rooms") },
-  handler: async (ctx, { gameId }) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Unauthenticated");
-
-    // Get game
-    const game = await ctx.db.get(gameId);
-    if (!game) throw new Error("Game not found");
-
-    if (game.status !== "active") throw new Error("Game not active");
-
-    // determine which player is caller
-    const isPlayer1 = game.player1Id === userId;
-    const isPlayer2 = game.player2Id === userId;
-    if (!isPlayer1 && !isPlayer2) throw new Error("Not a player in this game");
-
-    const currentPlayer = isPlayer1 ? "player1" : "player2";
-    if (game.currentTurn !== currentPlayer) throw new Error("Not your turn");
-
-    if (game.phase !== "end")
-      throw new Error("Must end phase first or be in end phase");
-
-    // switch turn
-    const nextPlayer = currentPlayer === "player1" ? "player2" : "player1";
-    const nextPlayerKey =
-      nextPlayer === "player1" ? "player1State" : "player2State";
-    // update opponent state: reset per-turn flags
-    const nextPlayerState =
-      nextPlayer === "player1" ? game.player1State : game.player2State;
-
-    // patch game
-    await ctx.db.patch(gameId, {
-      currentTurn: nextPlayer,
-      turnNumber: game.turnNumber ? game.turnNumber + 1 : 0,
-      phase: "draw", // new turn starts in draw phase
-      [`player${isPlayer1 ? 2 : 1}State`]: nextPlayerState, // reset next player's flags
-      actionsLog: [
-        ...(game.actionsLog ?? []),
-        {
-          timestamp: Date.now(),
-          turnNumber: game.turnNumber,
-          player: currentPlayer,
-          actionType: "endTurn",
-          description: "Ended turn",
-        },
-      ],
-    });
-
-    return {
-      result: "success",
-      nextTurn: nextPlayer,
-      newTurnNumber: game.turnNumber ? game.turnNumber + 1 : 1,
-    };
-  },
-});
-
-/**
  * advances to the next phase, in this order
  * draw, standby, main1, battle, main2, end
  * - logs the action
@@ -409,17 +361,17 @@ export const advancePhase = mutation({
     gameId: v.id("game_rooms"),
   },
   handler: async (ctx, { gameId }) => {
+    // check if user is authenticated
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Unauthenticated");
     }
 
     // fetch current game state
-    const game = await ctx.db.get(gameId);
+    let game = await ctx.db.get(gameId);
     if (!game) {
       throw new Error("Game not found");
     }
-
     if (game.status !== "active") {
       throw new Error("Game is not active");
     }
@@ -438,7 +390,7 @@ export const advancePhase = mutation({
       throw new Error("It is not your turn");
     }
 
-    // phase order
+    // phase order and validations
     const phaseOrder = [
       "draw",
       "standby",
@@ -451,36 +403,42 @@ export const advancePhase = mutation({
     if (currentPhaseIndex === -1) {
       throw new Error(`Invalid current phase: ${game.phase}`);
     }
-    if (currentPhaseIndex >= phaseOrder.length - 1) {
-      throw new Error("Already in the final phase (end). Use endTurn instead.");
+
+    // in end phase
+    if (currentPhaseIndex === phaseOrder.length - 1) {
+      const nextPlayer = currentPlayer === "player1" ? "player2" : "player1";
+
+      await ctx.db.patch(gameId, {
+        currentTurn: nextPlayer,
+        turnNumber: (game.turnNumber ?? 0) + 1,
+        phase: "draw",
+        actionsLog: [
+          ...(game.actionsLog ?? []),
+          {
+            timestamp: Date.now(),
+            turnNumber: game.turnNumber ?? 0,
+            player: currentPlayer,
+            actionType: "endTurn",
+            description: "Ended turn",
+          },
+        ],
+      });
+
+      game = (await ctx.db.get(gameId))!;
+      await processPhaseEntry(ctx, game, nextPlayer);
+
+      return {
+        success: true,
+        action: "turnEnded",
+        nextTurn: nextPlayer,
+        newTurnNumber: (game.turnNumber ?? 0) + 1,
+        newPhase: "draw",
+      };
     }
+
+    // phase advance
     const nextPhase = phaseOrder[currentPhaseIndex + 1];
 
-    // TODO: phase specific effects should be here
-
-    // in draw phase, player draws a card
-    let drewCard = false;
-    if (nextPhase === "standby") {
-      // skip draw only on very first turn of player 1
-      const isFirstTurnOfGame =
-        game.turnNumber === 1 && game.currentTurn === "player1";
-
-      if (!isFirstTurnOfGame) {
-        console.log("should draw here");
-        const drawResult = (await ctx.runMutation(api.game.drawCard, {
-          gameId,
-        })) as DrawCardReturn;
-        // if deckout the game ended, for that reason return the result
-        if (drawResult.result === "deckOut") {
-          return drawResult;
-        }
-        if (drawResult.result === "success") {
-          drewCard = true;
-        }
-      }
-    }
-
-    // update the game (advance phase)
     await ctx.db.patch(gameId, {
       phase: nextPhase,
       actionsLog: [
@@ -490,18 +448,20 @@ export const advancePhase = mutation({
           turnNumber: game.turnNumber,
           player: currentPlayer,
           actionType: "advancePhase",
-          description: drewCard
-            ? `Advanced to ${nextPhase} phase and drew a card`
-            : `Advanced to ${nextPhase} phase`,
+          description: `Advanced to ${nextPhase} phase`,
         },
       ],
     });
 
+    game = (await ctx.db.get(gameId))!;
+
+    await processPhaseEntry(ctx, game, currentPlayer);
+
     return {
       success: true,
+      action: "phaseAdvanced",
       previousPhase: game.phase,
       newPhase: nextPhase,
-      drewCard,
       turnNumber: game.turnNumber,
     };
   },
@@ -620,7 +580,7 @@ export const cleanupOldQueueEntries = internalMutation({
         cleanedCount++;
         console.log(
           `[cleanup] Deleted old WAITING entry for user ${entry.userId} ` +
-          `(age: ${Math.round(ageMs / 60000)} min)`,
+            `(age: ${Math.round(ageMs / 60000)} min)`,
         );
       }
     }
@@ -652,12 +612,12 @@ export const cleanupOldQueueEntries = internalMutation({
           cleanedCount++;
           console.log(
             `[cron] deleted stale matched entry for user ${entry.userId} ` +
-            `(age: ${Math.round(ageMs / 60000)} min, no active game found)`,
+              `(age: ${Math.round(ageMs / 60000)} min, no active game found)`,
           );
         } else {
           console.log(
             `[cron] skipped matched entry for user ${entry.userId} ` +
-            `(game still exists: ${relatedGame._id})`,
+              `(game still exists: ${relatedGame._id})`,
           );
         }
       }
