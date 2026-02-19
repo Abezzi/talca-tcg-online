@@ -79,9 +79,9 @@ export default function GameRoom() {
   };
 
   return (
-    <div className="relative flex h-screen w-full flex-col bg-gradient-to-b from-slate-900 to-slate-800 text-white overflow-hidden">
+    <div className="relative flex h-screen w-full flex-col bg-gradient-to-b from-stone-900 to-stone-800 text-white overflow-hidden">
       {/* opponent side (top) */}
-      <div className="flex flex-col items-center pt-4 pb-8 bg-black/30 border-b border-slate-600">
+      <div className="flex flex-col items-center pt-4 pb-8 bg-red-800/20 border-b border-red-600">
         <div className="flex items-center gap-4 mb-3">
           <Badge variant="outline" className="text-lg px-4 py-2">
             {isPlayer1 ? "Player 2" : "Player 1"}
@@ -90,6 +90,18 @@ export default function GameRoom() {
             <Heart className="h-6 w-6 fill-red-500" />
             {opponentState?.lifePoints ?? 8000}
           </div>
+        </div>
+
+        {/* opponent hand - card backs only */}
+        <div className="mb-4 flex gap-3 opacity-70">
+          {Array(opponentState?.hand?.length || 5)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="w-[90px] h-36 bg-gradient-to-br from-red-700 to-red-950 rounded-xl border border-slate-600 shadow-xl transform rotate-3 scale-x-[-1]"
+              />
+            ))}
         </div>
 
         {/* opponent field (monsters + spells/traps) */}
@@ -111,26 +123,15 @@ export default function GameRoom() {
             );
           })}
 
-          {opponentState?.field?.map((inst, idx) => {
-            const card = getCard(inst);
-            return card ? (
-              <div key={inst.cardId || idx} className="scale-x-[-1]">
-                <CardReveal key={idx} card={card} index={idx} size="small" />
-              </div>
-            ) : null;
-          })}
-        </div>
-
-        {/* opponent hand - card backs only */}
-        <div className="mt-8 flex gap-3 opacity-70">
-          {Array(opponentState?.hand?.length || 5)
-            .fill(0)
-            .map((_, i) => (
-              <div
-                key={i}
-                className="w-[90px] h-36 bg-gradient-to-br from-slate-700 to-slate-950 rounded-xl border border-slate-600 shadow-xl transform rotate-3 scale-x-[-1]"
-              />
-            ))}
+          {/* backrow */}
+          {/* {opponentState?.field?.map((inst, idx) => { */}
+          {/*   const card = getCard(inst); */}
+          {/*   return card ? ( */}
+          {/*     <div key={inst.cardId || idx} className="scale-x-[-1]"> */}
+          {/*       <CardReveal key={idx} card={card} index={idx} size="small" /> */}
+          {/*     </div> */}
+          {/*   ) : null; */}
+          {/* })} */}
         </div>
       </div>
 
@@ -149,21 +150,24 @@ export default function GameRoom() {
         <div className="text-slate-400 text-sm">
           Turn {activeGame.turnNumber} - Phase: {activeGame.phase}
         </div>
+
+        <div>
+          <PhaseButton
+            gameId={activeGame._id}
+            phase={activeGame.phase}
+            myTurn={myTurn}
+          />
+        </div>
       </div>
 
       {/* your side (bottom) */}
-      <div className="flex flex-col items-center pb-10 pt-6 bg-gradient-to-t from-slate-950 to-transparent border-t border-slate-700">
+      <div className="flex flex-col items-center pb-10 pt-6 bg-blue-800/20 from-slate-950 to-transparent border-t border-blue-700">
         {/* your field */}
         <div className="flex flex-wrap justify-center gap-4 max-w-6xl px-4 mb-8">
           {myState?.field?.map((inst, idx) => {
             const card = getCard(inst);
             return card ? (
-              <CardReveal
-                key={inst.cardId || idx}
-                card={card}
-                index={idx}
-                size="normal"
-              />
+              <CardReveal key={idx} card={card} index={idx} size="small" />
             ) : (
               <div
                 key={idx}
@@ -172,17 +176,18 @@ export default function GameRoom() {
             );
           })}
 
-          {myState?.field?.map((inst, idx) => {
-            const card = getCard(inst);
-            return card ? (
-              <CardReveal
-                key={inst.cardId || idx}
-                card={card}
-                index={idx}
-                size="small"
-              />
-            ) : null;
-          })}
+          {/* backrow */}
+          {/* {myState?.field?.map((inst, idx) => { */}
+          {/*   const card = getCard(inst); */}
+          {/*   return card ? ( */}
+          {/*     <CardReveal */}
+          {/*       key={inst.cardId || idx} */}
+          {/*       card={card} */}
+          {/*       index={idx} */}
+          {/*       size="small" */}
+          {/*     /> */}
+          {/*   ) : null; */}
+          {/* })} */}
         </div>
 
         {/* your hand */}
@@ -199,15 +204,6 @@ export default function GameRoom() {
             );
           })}
         </div>
-        <p>
-          debug: {activeGame._id} - {activeGame.phase} -{" "}
-          {myTurn ? "my turn" : "not my turn"}
-        </p>
-        <PhaseButton
-          gameId={activeGame._id}
-          phase={activeGame.phase}
-          myTurn={myTurn}
-        />
 
         {/* Your LP + name */}
         <div className="mt-8 flex items-center gap-8">
