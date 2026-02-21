@@ -13,11 +13,22 @@ type DrawCardReturn =
   | { result: "success"; newHandSize: number; newDeckSize: number }
   | { result: "deckOut"; winnerId: Id<"users"> };
 
+type SummonResult =
+  | { success: true; message: string }
+  | { success: false; reason: string };
+
+const initialZones = {
+  monsters: Array(5).fill(null),
+  spellsAndTraps: Array(5).fill(null),
+  fieldSpell: null,
+};
+
 function emptyPlayerState() {
   return {
     lifePoints: 8000,
     hand: [] as Id<"cards">[],
-    field: [] as Id<"cards">[],
+    zones: initialZones,
+    hasNormalSummonedThisTurn: false,
     deck: [] as Id<"cards">[],
     deckSize: 40, // TODO: query actual deck size later
     graveyard: [] as Id<"cards">[],
@@ -201,6 +212,7 @@ export const createGameFromQueue = internalMutation({
     const player1InitialState = {
       ...emptyPlayerState(),
       hand: p1Draw.drawn,
+      hasNormalSummonedThisTurn: false,
       deck: p1Draw.remaining,
       deckSize: p1Draw.remaining.length,
     };
@@ -208,6 +220,7 @@ export const createGameFromQueue = internalMutation({
     const player2InitialState = {
       ...emptyPlayerState(),
       hand: p2Draw.drawn,
+      hasNormalSummonedThisTurn: false,
       deck: p2Draw.remaining,
       deckSize: p2Draw.remaining.length,
     };
@@ -407,11 +420,18 @@ export const advancePhase = mutation({
     // in end phase
     if (currentPhaseIndex === phaseOrder.length - 1) {
       const nextPlayer = currentPlayer === "player1" ? "player2" : "player1";
+      const nextPlayerStateKey =
+        nextPlayer === "player1" ? "player1State" : "player2State";
 
       await ctx.db.patch(gameId, {
         currentTurn: nextPlayer,
         turnNumber: (game.turnNumber ?? 0) + 1,
         phase: "draw",
+        [nextPlayerStateKey]: {
+          ...(nextPlayer === "player1" ? game.player1State : game.player2State),
+          // reset normal summon for next player
+          hasNormalSummonedThisTurn: false,
+        },
         actionsLog: [
           ...(game.actionsLog ?? []),
           {
@@ -627,5 +647,182 @@ export const cleanupOldQueueEntries = internalMutation({
       `[cron] cleanup finished, removed ${cleanedCount} entries total.`,
     );
     return { cleanedCount };
+  },
+});
+
+export const normalSummonOrSet = mutation({
+  args: {
+    gameId: v.id("game_rooms"),
+    cardId: v.id("cards"),
+    action: v.union(
+      v.literal("normalSummon"), // face-up attack
+      v.literal("set"), // face-down defense
+    ),
+    tributeCardIds: v.optional(v.array(v.id("cards"))),
+    targetMonsterIndex: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<SummonResult> => {
+    const {
+      gameId,
+      cardId,
+      action,
+      tributeCardIds = [],
+      targetMonsterIndex,
+    } = args;
+
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    const game = await ctx.db.get(gameId);
+    if (!game) throw new Error("Game not found");
+    if (game.status !== "active")
+      return { success: false, reason: "Game is not active" };
+
+    const isPlayer1 = game.player1Id === userId;
+    const isPlayer2 = game.player2Id === userId;
+    if (!isPlayer1 && !isPlayer2)
+      return { success: false, reason: "Not a player in this game" };
+
+    const playerKey = isPlayer1 ? "player1" : "player2";
+    const opponentKey = isPlayer1 ? "player2" : "player1";
+    const stateKey = `${playerKey}State` as "player1State" | "player2State";
+    const state = game[stateKey];
+
+    // turn check
+    if (game.currentTurn !== playerKey) {
+      return { success: false, reason: "Not your turn" };
+    }
+    if (game.phase !== "main1" && game.phase !== "main2") {
+      return { success: false, reason: "Can only summon in Main Phase 1 or 2" };
+    }
+
+    // card in hand
+    if (!state.hand.includes(cardId)) {
+      return { success: false, reason: "Card not in hand" };
+    }
+
+    // fetch card data
+    const card = await ctx.db.get(cardId);
+    if (!card) return { success: false, reason: "Card not found" };
+    if (card.cardType !== "normal") {
+      // assuming "normal" = monster
+      return { success: false, reason: "Can only normal summon/set monsters" };
+    }
+
+    const level = card.level ?? 0;
+
+    // tribute requirements
+    let requiredTributes = 0;
+    if (level >= 7) requiredTributes = 2;
+    else if (level >= 5) requiredTributes = 1;
+
+    if (requiredTributes > 0) {
+      if (tributeCardIds.length !== requiredTributes) {
+        return {
+          success: false,
+          reason: `Level ${level} requires exactly ${requiredTributes} tribute(s)`,
+        };
+      }
+    } else if (tributeCardIds.length > 0) {
+      return { success: false, reason: "No tributes needed for this monster" };
+    }
+
+    // check already used normal summon this turn
+    if (state.hasNormalSummonedThisTurn) {
+      return {
+        success: false,
+        reason: "Already Normal Summoned or Set this turn",
+      };
+    }
+
+    // find available zone
+    const monsters = state.zones.monsters;
+    if (monsters.length !== 5) {
+      // safety, should never happen
+      return { success: false, reason: "Invalid monster zones state" };
+    }
+
+    const zoneIndex =
+      targetMonsterIndex ?? monsters.findIndex((z) => z === null);
+    if (zoneIndex === -1 || zoneIndex < 0 || zoneIndex > 4) {
+      return { success: false, reason: "No available monster zone" };
+    }
+
+    // validates tributes
+    const tributedCardIds: Id<"cards">[] = [];
+    for (const tributeId of tributeCardIds) {
+      const tributeZone = monsters.find((z) => z?.cardId === tributeId);
+      if (!tributeZone) {
+        return { success: false, reason: "Tribute monster not on field" };
+      }
+      tributedCardIds.push(tributeId);
+    }
+
+    // new monster entry
+    const newMonster = {
+      cardId,
+      position:
+        action === "normalSummon"
+          ? ("attack" as const)
+          : ("face-down-defense" as const),
+    };
+
+    // update hand/zone logic
+    const newHand = state.hand.filter((id) => id !== cardId);
+    const newMonsters = [...monsters];
+    newMonsters[zoneIndex] = newMonster;
+
+    const newGraveyard = [...state.graveyard];
+    const newZones = { ...state.zones, monsters: newMonsters };
+
+    // tributed monsters sent to gy
+    let updatedState = {
+      ...state,
+      hand: newHand,
+      zones: newZones,
+      graveyard: newGraveyard,
+    };
+
+    if (tributedCardIds.length > 0) {
+      const newMonstersAfterTribute = newMonsters.map((zone) =>
+        zone && tributeCardIds.includes(zone?.cardId) ? null : zone,
+      );
+      updatedState = {
+        ...updatedState,
+        zones: { ...newZones, monsters: newMonstersAfterTribute },
+        graveyard: [...newGraveyard, ...tributedCardIds],
+      };
+    }
+
+    const updateStateWithNormalSummonFlag = {
+      ...updatedState,
+      hasNormalSummonedThisTurn: true,
+    };
+
+    // patch game with the log entry
+    const logEntry = {
+      timestamp: Date.now(),
+      turnNumber: game.turnNumber,
+      player: playerKey,
+      actionType: action === "normalSummon" ? "normalSummon" : "set",
+      cardId,
+      fromZone: "hand",
+      toZone: `monsterZone${zoneIndex + 1}`,
+      description:
+        action === "normalSummon"
+          ? `Normal Summoned ${card.name || "monster"}`
+          : `Set ${card.name || "monster"}`,
+    } as const;
+
+    await ctx.db.patch(gameId, {
+      [stateKey]: updateStateWithNormalSummonFlag,
+      actionsLog: [...(game.actionsLog ?? []), logEntry],
+    });
+
+    return {
+      success: true,
+      message:
+        action === "normalSummon" ? "Monster Normal Summoned" : "Monster Set",
+    };
   },
 });

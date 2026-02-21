@@ -5,6 +5,30 @@ import { authTables } from "@convex-dev/auth/server";
 // The schema is normally optional, but Convex Auth
 // requires indexes defined on `authTables`.
 // The schema provides more precise TypeScript types.
+const monsterZoneEntry = v.union(
+  v.null(),
+  v.object({
+    cardId: v.id("cards"),
+    position: v.union(
+      v.literal("attack"),
+      v.literal("defense"),
+      v.literal("face-down-defense"),
+    ),
+    counters: v.optional(v.number()),
+    effectsActive: v.optional(v.boolean()),
+  }),
+);
+
+const spellTrapZoneEntry = v.union(
+  v.null(),
+  v.object({
+    cardId: v.id("cards"),
+    faceDown: v.boolean(),
+    activatedThisTurn: v.optional(v.boolean()),
+    counters: v.optional(v.number()),
+  }),
+);
+
 export default defineSchema({
   ...authTables,
   numbers: defineTable({
@@ -155,8 +179,24 @@ export default defineSchema({
     player1State: v.object({
       lifePoints: v.number(),
       hand: v.array(v.id("cards")),
-      field: v.array(v.any()),
+      zones: v.object({
+        // monsters
+        monsters: v.array(monsterZoneEntry),
+        // spells/traps
+        spellsAndTraps: v.array(spellTrapZoneEntry),
+        // field spell
+        fieldSpell: v.union(
+          v.null(),
+          v.object({
+            cardId: v.id("cards"),
+            faceDown: v.boolean(),
+            activatedThisTurn: v.optional(v.boolean()),
+            counters: v.optional(v.number()),
+          }),
+        ),
+      }),
       deck: v.array(v.id("cards")),
+      hasNormalSummonedThisTurn: v.boolean(),
       deckSize: v.number(),
       graveyard: v.array(v.id("cards")),
       banished: v.array(v.id("cards")),
@@ -165,8 +205,24 @@ export default defineSchema({
     player2State: v.object({
       lifePoints: v.number(),
       hand: v.array(v.id("cards")),
-      field: v.array(v.any()),
+      zones: v.object({
+        // monsters
+        monsters: v.array(monsterZoneEntry),
+        // spells/traps
+        spellsAndTraps: v.array(spellTrapZoneEntry),
+        // field spell
+        fieldSpell: v.union(
+          v.null(),
+          v.object({
+            cardId: v.id("cards"),
+            faceDown: v.boolean(),
+            activatedThisTurn: v.optional(v.boolean()),
+            counters: v.optional(v.number()),
+          }),
+        ),
+      }),
       deck: v.array(v.id("cards")),
+      hasNormalSummonedThisTurn: v.boolean(),
       deckSize: v.number(),
       graveyard: v.array(v.id("cards")),
       banished: v.array(v.id("cards")),
