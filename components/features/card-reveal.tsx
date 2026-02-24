@@ -15,9 +15,15 @@ type CardRevealProps = {
   card: CardType;
   index: number; // for stagger animation or numbering
   size?: "normal" | "small" | "large";
+  className?: string;
 };
 
-export function CardReveal({ card, index, size = "normal" }: CardRevealProps) {
+export function CardReveal({
+  card,
+  index,
+  size = "normal",
+  className,
+}: CardRevealProps) {
   const isSmall = size === "small";
   const isLarge = size === "large";
 
@@ -50,6 +56,7 @@ export function CardReveal({ card, index, size = "normal" }: CardRevealProps) {
       className={cn(
         "py-2 w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:scale-105",
         cardTypeStyle[card.cardType] || "bg-white",
+        className,
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
