@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Heart } from "lucide-react";
 import { CardReveal } from "@/components/features/card-reveal";
 import { Id } from "@/convex/_generated/dataModel";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CardOnBoard } from "@/components/features/card-on-board";
 
 interface PhaseButtonProps {
   gameId: Id<"game_rooms">;
@@ -53,6 +54,18 @@ export default function GameRoom() {
     : activeGame?.player1State;
   const [selectedHandCardId, setSelectedHandCardId] =
     useState<Id<"cards"> | null>(null);
+
+  // de-select the card if the user press ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedHandCardId !== null) {
+        setSelectedHandCardId(null);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [selectedHandCardId]);
+
   const normalSummonOrSet = useMutation(api.game.normalSummonOrSet);
   const allCardIds = useMemo(() => {
     const ids = new Set<Id<"cards">>();
@@ -205,7 +218,7 @@ export default function GameRoom() {
                 )}
               >
                 {card ? (
-                  <CardReveal card={card} size="small" index={card._id} />
+                  <CardOnBoard card={card} size="small" index={card._id} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-red-400/40 text-sm">
                     Monster {idx + 1}
@@ -246,7 +259,7 @@ export default function GameRoom() {
       <div className="flex flex-col items-center pb-10 pt-6 bg-blue-800/20 from-slate-950 to-transparent border-t border-blue-700">
         {/* my monsters field */}
         <div className="flex justify-center gap-5 mb-4">
-          {myState?.zones?.spellsAndTraps?.map((zone, idx) => {
+          {myState?.zones?.monsters?.map((zone, idx) => {
             const card = zone?.cardId ? getCard(zone?.cardId) : null;
             const isClickable =
               myTurn &&
@@ -268,7 +281,7 @@ export default function GameRoom() {
                 )}
               >
                 {card ? (
-                  <CardReveal card={card} size="small" index={idx} />
+                  <CardOnBoard card={card} size="small" index={idx} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-blue-300/50 text-sm font-medium">
                     Monster {idx + 1}
