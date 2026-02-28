@@ -40,6 +40,8 @@ function PhaseButton({ gameId, phase, myTurn }: PhaseButtonProps) {
 }
 
 export default function GameRoom() {
+  // card size in board
+  const cardSize = "h-32 w-24";
   const activeGame = useQuery(api.game.getMyActiveGame);
   const user = useQuery(api.user.getUser, {});
 
@@ -152,49 +154,44 @@ export default function GameRoom() {
   return (
     <div className="relative flex h-screen w-full flex-col bg-gradient-to-b from-stone-900 to-stone-800 text-white overflow-hidden">
       {/* opponent side (top) */}
-      <div className="flex flex-col items-center pt-4 pb-8 bg-red-800/20 border-b border-red-600">
-        <div className="flex items-center gap-4 mb-3">
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            {isPlayer1 ? "Player 2" : "Player 1"}
-          </Badge>
-          <div className="flex items-center gap-2 text-red-400 text-2xl font-bold">
-            <Heart className="h-6 w-6 fill-red-500" />
-            {opponentState?.lifePoints ?? 8000}
-          </div>
+      {/* life points + name */}
+      <div className="absolute flex items-center gap-4 mb-3">
+        <Badge variant="outline" className="text-lg px-4 py-2">
+          {isPlayer1 ? "Player 2" : "Player 1"}
+        </Badge>
+        <div className="flex items-center gap-2 text-red-400 text-2xl font-bold">
+          <Heart className="h-6 w-6 fill-red-500" />
+          {opponentState?.lifePoints ?? 8000}
         </div>
-
-        {/* opponent hand - card backs only */}
+      </div>
+      {/* opponent hand - card backs only */}
+      <div className="flex flex-col items-center pt-4 pb-8 bg-red-800/20 border-b border-red-600">
         <div className="mb-4 flex gap-3 opacity-70">
           {Array(opponentState?.hand?.length || 5)
             .fill(0)
             .map((_, i) => (
               <div
                 key={i}
-                className="w-[90px] h-36 bg-gradient-to-br from-red-700 to-red-950 rounded-xl border border-slate-600 shadow-xl transform rotate-3 scale-x-[-1]"
+                className="w-[60px] h-20 bg-gradient-to-br from-red-700 to-red-950 rounded-xl border border-slate-600 shadow-xl transform rotate-3 scale-x-[-1]"
               />
             ))}
         </div>
 
-        {/* opponent spells and traps */}
-        <div className="flex justify-center gap-4">
+        {/* opponent field spells and traps */}
+        <div className="flex justify-center gap-2 mb-2">
           {opponentState?.zones?.spellsAndTraps?.map((zone, idx) => {
             const card = zone?.cardId ? getCard(zone?.cardId) : null;
             return (
               <div
                 key={idx}
                 className={cn(
-                  "w-32 h-44 rounded-xl border-2 border-red-700/40",
+                  "rounded-xl border-2 border-red-700/40",
                   !zone && "bg-slate-900/40 border-dashed",
+                  cardSize,
                 )}
               >
                 {card ? (
-                  <CardReveal
-                    card={card}
-                    size="small"
-                    index={card.id}
-                    // flipped
-                    // faceDown={zone?.faceDown}
-                  />
+                  <CardReveal card={card} size="small" index={card.id} />
                 ) : (
                   <div className="h-full flex items-center justify-center text-red-400/30 text-xs">
                     S/T {idx + 1}
@@ -205,20 +202,25 @@ export default function GameRoom() {
           })}
         </div>
 
-        {/* opponent field (monsters + spells/traps) */}
-        <div className="flex justify-center gap-4 mb-3">
+        {/* opponent field (monsters) */}
+        <div className="flex justify-center gap-2">
           {opponentState?.zones?.monsters?.map((zone, idx) => {
             const card = zone?.cardId ? getCard(zone?.cardId) : null;
             return (
               <div
                 key={idx}
                 className={cn(
-                  "w-32 h-44 rounded-xl border-2 border-red-700/50",
+                  "rounded-xl border-2 border-red-700/50",
                   !zone && "bg-slate-800/50 border-dashed",
+                  cardSize,
                 )}
               >
                 {card ? (
-                  <CardOnBoard card={card} size="small" index={card._id} />
+                  <CardOnBoard
+                    card={card}
+                    size="extra-small"
+                    index={card._id}
+                  />
                 ) : (
                   <div className="h-full flex items-center justify-center text-red-400/40 text-sm">
                     Monster {idx + 1}
@@ -229,36 +231,39 @@ export default function GameRoom() {
           })}
         </div>
       </div>
-
       {/* center board - shared area */}
-      <div className="flex-1 flex flex-col items-center justify-center relative">
-        <div className="absolute top-4 left-1/2 -translate-x-1/2">
-          <Badge
-            variant={myTurn ? "default" : "secondary"}
-            className="text-lg px-6 py-2"
-          >
-            {myTurn ? "Your Turn" : "Opponent's Turn"}
-          </Badge>
-        </div>
+      <div className="relative z-10 mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 ">
+        <div className="-my-10 sm:-my-12 md:-my-16 lg:-my-20 xl:-my-24 bg-gradient-to-r from-stone-800/90 to-stone-900/90 backdrop-blur-sm border border-slate-600/50 rounded-xl shadow-2xl p-5 sm:p-6 md:p-8 text-center ">
+          {/* badge */}
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+            <Badge
+              variant={myTurn ? "default" : "secondary"}
+              className="text-lg px-6 py-2 shadow-lg"
+            >
+              {myTurn ? "Your Turn" : "Opponent's Turn"}
+            </Badge>
+          </div>
 
-        {/* TODO: graveyards, banished zones, deck zones here later */}
-        <div className="text-slate-400 text-sm">
-          Turn {activeGame.turnNumber} - Phase: {activeGame.phase}
-        </div>
+          {/* content */}
+          <div className="pt-6 sm:pt-8">
+            <div className="text-slate-300 text-sm md:text-base font-medium tracking-wide uppercase">
+              Turn {activeGame.turnNumber} — {activeGame.phase} Phase
+            </div>
 
-        <div>
-          <PhaseButton
-            gameId={activeGame._id}
-            phase={activeGame.phase}
-            myTurn={myTurn}
-          />
+            <div className="mt-4">
+              <PhaseButton
+                gameId={activeGame._id}
+                phase={activeGame.phase}
+                myTurn={myTurn}
+              />
+            </div>
+          </div>
         </div>
       </div>
-
       {/* my side (bottom) */}
       <div className="flex flex-col items-center pb-10 pt-6 bg-blue-800/20 from-slate-950 to-transparent border-t border-blue-700">
         {/* my monsters field */}
-        <div className="flex justify-center gap-5 mb-4">
+        <div className="flex justify-center gap-2 mb-2">
           {myState?.zones?.monsters?.map((zone, idx) => {
             const card = zone?.cardId ? getCard(zone?.cardId) : null;
             const isClickable =
@@ -272,12 +277,13 @@ export default function GameRoom() {
                 key={idx}
                 onClick={() => isClickable && handleSummonClick(idx)}
                 className={cn(
-                  "w-32 h-44 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                  "rounded-xl border-2 transition-all duration-200 cursor-pointer",
                   zone
                     ? "border-blue-500 shadow-lg shadow-blue-900/40"
                     : "border-dashed border-blue-600/50 hover:border-blue-400 hover:bg-blue-950/30",
                   isClickable &&
-                    "ring-2 ring-yellow-400 ring-offset-2 ring-offset-slate-900",
+                  "ring-2 ring-yellow-400 ring-offset-2 ring-offset-slate-900",
+                  cardSize,
                 )}
               >
                 {card ? (
@@ -292,28 +298,24 @@ export default function GameRoom() {
           })}
         </div>
         {/*my spell-traps zone*/}
-        <div className="flex justify-center gap-4 mb-8">
+        <div className="flex justify-center gap-2 mb-2">
           {myState?.zones?.spellsAndTraps?.map((zone, idx) => {
             const card = zone?.cardId ? getCard(zone?.cardId) : null;
             return (
               <div
                 key={idx}
                 className={cn(
-                  "w-32 h-44 rounded-xl border-2",
+                  "rounded-xl border-2",
                   zone
-                    ? "border-purple-600/70 shadow-purple-900/30"
-                    : "border-dashed border-purple-700/40 bg-slate-950/40",
+                    ? "border-purple-600/70 shadow-blue-900/30"
+                    : "border-dashed border-blue-700/40 bg-slate-950/40",
+                  cardSize,
                 )}
               >
                 {card ? (
-                  <CardReveal
-                    card={card}
-                    size="small"
-                    index={idx}
-                    // faceDown={zone?.faceDown}
-                  />
+                  <CardReveal card={card} size="small" index={idx} />
                 ) : (
-                  <div className="h-full flex items-center justify-center text-purple-300/40 text-xs">
+                  <div className="h-full flex items-center justify-center text-blue-300/40 text-xs">
                     S/T {idx + 1}
                   </div>
                 )}
@@ -322,7 +324,6 @@ export default function GameRoom() {
           })}
         </div>
       </div>
-
       {/* my hand */}
       <div className="flex flex-wrap justify-center gap-4 px-6 bg-blue-800/20">
         {myState?.hand?.map((cardId: Id<"cards">, idx) => {
@@ -347,7 +348,7 @@ export default function GameRoom() {
                 key={idx}
                 card={card}
                 index={idx}
-                size="normal"
+                size="small"
                 className={
                   isSelected
                     ? "brightness-110 scale-105 ring-2 ring-yellow-400 transition-all duration-200"
@@ -358,7 +359,6 @@ export default function GameRoom() {
           );
         })}
       </div>
-
       {/* my LP + name */}
       <div className="flex items-center gap-8 bg-blue-800/20">
         <div className="flex items-center gap-3 text-red-400 text-4xl font-bold">
@@ -368,7 +368,6 @@ export default function GameRoom() {
         <Badge variant="outline" className="text-xl px-6 py-3">
           {isPlayer1 ? "Player 1" : "Player 2"} (You)
         </Badge>
-        DEBUG: {selectedHandCardId}
       </div>
     </div>
   );
