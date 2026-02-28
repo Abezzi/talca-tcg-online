@@ -19,7 +19,7 @@ import {
 type CardRevealProps = {
   card: CardType;
   index: number; // for stagger animation or numbering
-  size?: "normal" | "small" | "large";
+  size?: "normal" | "small" | "large" | "extra-small";
   className?: string;
 };
 
@@ -29,10 +29,17 @@ export function CardOnBoard({
   size = "normal",
   className,
 }: CardRevealProps) {
+  const isExtraSmall = size === "extra-small";
   const isSmall = size === "small";
   const isLarge = size === "large";
 
-  const textSize = isSmall ? "text-xs" : isLarge ? "text-lg" : "text-base";
+  const textSize = isSmall
+    ? "text-xs"
+    : isLarge
+      ? "text-lg"
+      : isExtraSmall
+        ? "text-[10px]"
+        : "text-base";
 
   const rarityStyles = {
     n: "bg-gray-200 text-gray-800 border-gray-300",
@@ -61,7 +68,7 @@ export function CardOnBoard({
       <HoverCardTrigger>
         <Card
           className={cn(
-            "py-0 gap-1 w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:brightness-105",
+            "h-32 w-24 py-0 gap-1 max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:brightness-105",
             cardTypeStyle[card.cardType] || "bg-white",
             className,
           )}
@@ -77,7 +84,7 @@ export function CardOnBoard({
             {/* art */}
             <div
               className={cn(
-                "h-32 bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center text-white font-bold",
+                "h-12 bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center text-white font-bold",
                 textSize,
               )}
             >
@@ -133,7 +140,7 @@ export function CardOnBoard({
 
           <CardFooter className="justify-center p-0 m-0 gap-0">
             {card.cardType === "normal" ? (
-              <p className="text-xs text-stone-900 italic font-bold">
+              <p className={(cn("text-stone-900 italic font-bold"), textSize)}>
                 ATK:{card.attack} / DEF:{card.defense}
               </p>
             ) : card.cardType === "spell" ? (

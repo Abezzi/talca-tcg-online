@@ -14,7 +14,7 @@ import { Icon } from "@iconify/react";
 type CardRevealProps = {
   card: CardType;
   index: number; // for stagger animation or numbering
-  size?: "normal" | "small" | "large";
+  size?: "normal" | "small" | "large" | "extra-small";
   className?: string;
 };
 
@@ -24,10 +24,33 @@ export function CardReveal({
   size = "normal",
   className,
 }: CardRevealProps) {
+  const isExtraSmall = size === "extra-small";
   const isSmall = size === "small";
   const isLarge = size === "large";
 
-  const textSize = isSmall ? "text-xs" : isLarge ? "text-lg" : "text-base";
+  const textSize = isSmall
+    ? "text-[10px]"
+    : isLarge
+      ? "text-lg"
+      : isExtraSmall
+        ? "text-[8px]"
+        : "text-base";
+
+  const cardSize = isSmall
+    ? "w-40 h-65"
+    : isLarge
+      ? "text-lg"
+      : isExtraSmall
+        ? "w-20 h-32"
+        : "text-base";
+
+  const imageSize = isSmall
+    ? "h-20"
+    : isLarge
+      ? "text-lg"
+      : isExtraSmall
+        ? "w-20 h-32"
+        : "text-base";
 
   const rarityStyles = {
     n: "bg-gray-200 text-gray-800 border-gray-300",
@@ -56,11 +79,12 @@ export function CardReveal({
       className={cn(
         "py-2 w-full max-w-[320px] overflow-hidden border-2 transition-all duration-300 hover:scale-105",
         cardTypeStyle[card.cardType] || "bg-white",
+        cardSize,
         className,
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <CardHeader className="px-2">
+      <CardHeader className="px-2 pb-0 gap-1">
         <div className="flex justify-between items-start gap-2">
           <CardTitle className={(cn("leading-tight"), textSize)}>
             {card.name}
@@ -83,32 +107,35 @@ export function CardReveal({
         {/* art */}
         <div
           className={cn(
-            "h-44 bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center text-white text-2xl font-bold",
+            "bg-gradient-to-b from-slate-700 to-slate-900 flex items-center justify-center text-white text-2xl font-bold",
             textSize,
+            imageSize,
           )}
         >
           {card.name}
         </div>
 
-        <div className="flex flex-row gap-2">
+        <div className="flex flex-row gap-x-2">
           {/* lvl, spell or trap tag */}
           {card.cardType === "normal" && (
-            <p className="text-xs text-stone-900 uppercase italic">
+            <p className={(cn("text-stone-900 uppercase italic"), textSize)}>
               LVL: {card.level}
             </p>
           )}
           {card.cardType !== "normal" && (
-            <p className="text-xs text-stone-900 uppercase italic">
+            <p className={(cn("text-stone-900 uppercase italic"), textSize)}>
               {card.cardType}
             </p>
           )}
           {/* archetype tag */}
           {card.archetype && (
-            <p className="text-xs text-stone-900 underline">{card.archetype}</p>
+            <p className={(cn("text-stone-900 underline"), textSize)}>
+              {card.archetype}
+            </p>
           )}
 
           {card.monsterType && (
-            <p className="text-xs text-stone-900 capitalize">
+            <p className={(cn("text-stone-900 capitalize"), textSize)}>
               {card.monsterType} Type
             </p>
           )}
