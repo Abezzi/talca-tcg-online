@@ -114,7 +114,7 @@ export default function CreateDeck() {
                       key={idx}
                       card={card}
                       index={idx}
-                      size="small"
+                      size="normal"
                     />
                     <div className="hover:scale-105 absolute left-2 bottom-2 flex h-8 w-8 items-center justify-center rounded-full bg-stone-800/90 text-sm font-bold text-white shadow-lg">
                       <p>x{card.quantity}</p>
@@ -204,7 +204,7 @@ export default function CreateDeck() {
                       key={card._id}
                       card={card}
                       index={idx}
-                      size="small"
+                      size="normal"
                     />
 
                     {/* count badge - only show if > 1 */}
